@@ -1,0 +1,12 @@
+Django
+django-sslserver
+requests
+oauthlib
+python-dotenv
+SQLAlchemy
+pytest
+pytest-django
+psycopg2
+bungio
+django-ninja
+requests_oauthlib
