@@ -44,3 +44,5 @@ services:
       - ../modules:/modules
     environment:
       - NODE_ENV=development
+      - VITE_INSPECT=true
+      - CHOKIDAR_USEPOLLING=true
