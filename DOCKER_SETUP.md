@@ -12,7 +12,7 @@ Services communicate via container network using service names (e.g., `db`, `api
 ### Folder Mappings
 
 ```
-host                          container (api service)    container (web service)
+host                          container (api service)    container (ui service)
 ──────────────────────────────────────────────────────────────────────────
 ../server          →          /app                       (not mounted)
 ../client          →          (not mounted)              /app
@@ -46,9 +46,9 @@ Solution: COPY setup.sh /setup.sh (outside /app mount point)
 Internal container ports do not match host ports. Map the internal listening port to the desired external port.
 
 ```
-api service:   8000:8000       (internal 8000 → host 8000)
-web service:   3000:5173       (internal 5173 → host 3000)
-db service:    5432:5432       (internal 5432 → host 5432)
+api service:    8000:8000       (internal 8000 → host 8000)
+ui service:     5173:5173       (internal 5173 → host 3000)
+db service:     5432:5432       (internal 5432 → host 5432)
 ```
 
 If unreachable, verify:
@@ -57,7 +57,7 @@ If unreachable, verify:
 
 ## File Watching on Windows
 
-Docker on Windows does not trigger inotify-based file watchers through mounted volumes. Enable polling in the web service environment:
+Docker on Windows does not trigger inotify-based file watchers through mounted volumes. Enable polling in the ui service environment:
 ```
 CHOKIDAR_USEPOLLING=true
 ```

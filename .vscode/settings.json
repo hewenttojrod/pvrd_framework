@@ -1,6 +1,10 @@
 {
     "files.associations": {
-".tsx": "typescriptreact",
-".ts": "typescript"
-}
+        ".tsx": "typescriptreact",
+        ".ts": "typescript"
+    },
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/server",
+        "${workspaceFolder}/modules"
+    ]
 }

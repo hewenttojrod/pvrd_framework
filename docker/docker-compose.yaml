@@ -24,6 +24,8 @@ services:
       - DATABASE_NAME=app_db
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=Password6^
+      - SERVER_ROOT=/app
+      - MODULES_ROOT=/modules
     depends_on:
       - db   
     ports:
@@ -32,7 +34,7 @@ services:
       - ../server:/app
       - ../modules:/modules
 
-  web:
+  ui:
     build:
       context: ..
       dockerfile: ./docker/client.Dockerfile

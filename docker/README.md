@@ -13,6 +13,6 @@ Port: 8000
 Description: Django web server used to handle dal/bll and db backend. Communicates with frontend via REST APIs
 
 ## Front end
-name: web
-Port: 3000
+name: ui
+Port: 5173
 Description: React frontend to handle web pages. Communicates with django backend via REST APIs
