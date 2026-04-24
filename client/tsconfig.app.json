@@ -1,10 +1,22 @@
 {
   "compilerOptions": {
+
+    /* path aliasing */
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@/*": ["src/*"],
+      "@templates/*": ["src/templates/*"],
+      "@navigation/*": ["src/navigation/*"],
+      "@app-types/*": ["src/types/*"],
+      "react/jsx-runtime": ["node_modules/@types/react/jsx-runtime.d.ts"],
+      "react/jsx-dev-runtime": ["node_modules/@types/react/jsx-dev-runtime.d.ts"],
+    },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    "types": ["vite/client", "react", "react-dom"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -21,5 +33,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": [
+      "src",
+      "../modules/*/client/**/*.ts",
+      "../modules/*/client/**/*.tsx"
+    ],
 }

@@ -6,4 +6,5 @@ db.sqlite3
 .venv/
 data/**
 .DS_Store
-modules/**
+#modules/**
+.github

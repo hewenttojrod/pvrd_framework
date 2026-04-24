@@ -1,0 +1,3 @@
+[submodule "modules/Bookstore"]
+	path = modules/Bookstore
+	url = https://github.com/hewenttojrod/Bookstore.git
