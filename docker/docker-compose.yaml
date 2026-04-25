@@ -47,4 +47,5 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_INSPECT=true
+      - VITE_API_PROXY_TARGET=http://api:8000
       - CHOKIDAR_USEPOLLING=true

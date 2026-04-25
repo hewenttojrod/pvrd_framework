@@ -4,6 +4,15 @@ from django.db.models.base import ModelBase
 
 class ModuleModelBase(ModelBase):
     def __new__(mcls, name, bases, attrs, **kwargs):
+        meta = attrs.get("Meta")
+        is_abstract = bool(meta and getattr(meta, "abstract", False))
+
+        if not is_abstract and "id" not in attrs:
+            attrs[f"{name.lower()}_id"] = models.BigAutoField(
+                primary_key=True,
+                db_column=f"{name.lower()}_id",
+            )
+
         cls = super().__new__(mcls, name, bases, attrs, **kwargs)
 
         if cls._meta.abstract:
@@ -17,17 +26,11 @@ class ModuleModelBase(ModelBase):
             cls._meta.db_table = f"{module_root}_{cls._meta.model_name}"
             cls._meta.original_attrs["db_table"] = cls._meta.db_table
 
-        pk_field = cls._meta.pk
-        if pk_field is not None and pk_field.name == "id" and not pk_field.db_column:
-            pk_field.db_column = f"{cls._meta.model_name}_id"
-
         return cls
 
 
 class BaseModel(models.Model, metaclass=ModuleModelBase):
     """Common base model with timestamp fields."""
-
-    id = models.BigAutoField(primary_key=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
