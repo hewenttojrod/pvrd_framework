@@ -1,3 +1,19 @@
+// /**
+//  * Reusable data grid component displaying tabular data from a REST API.
+//  * Features:
+//  * - Sortable columns (uses DRF ordering convention: ?ordering=field or ?ordering=-field)
+//  * - Async loading with refresh button
+//  * - Optional right-click context menu for actions
+//  * - Supports both array and paginated (results/count) response formats
+//  * - Automatic cleanup of pending requests
+//  * - Loading/error/empty states
+//  * 
+//  * @template TRow - Type of row data from API
+//  * @param columns - Column definitions
+//  * @param endpoint - Full REST API endpoint URL returning ApiListResponse<TRow> or TRow[]
+//  * @param params - Optional query parameters to append to each request
+//  * @param contextMenuActions - Optional right-click menu actions
+//  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApiListResponse, ApiState, ColumnDef, GridActionContext, GridContextAction } from "@app-types/api";
 import { fetchWithRetry, resolveApiUrl } from "@/utils/api-fetch";

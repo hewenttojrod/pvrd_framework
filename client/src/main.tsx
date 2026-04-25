@@ -1,3 +1,8 @@
+/**
+ * Application entry point for Vite + React.
+ * Dynamically loads all module routes from modules/<module>/client/index.ts,
+ * renders the app shell with routing, and handles lazy-loading of module pages.
+ */
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";

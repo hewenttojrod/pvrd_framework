@@ -1,3 +1,8 @@
+/**
+ * Landing/home page placeholder component.
+ * Currently unused in favor of the home page element defined in main.tsx,
+ * but available for future use as an alternative landing page.
+ */
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'

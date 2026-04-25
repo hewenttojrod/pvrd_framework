@@ -4,6 +4,11 @@ import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
 
+/**
+ * Root application component (legacy/placeholder).
+ * Displays Vite and React welcome information.
+ * In the actual app flow, AppShell and main.tsx are the primary entry points.
+ */
 function App() {
   const [count, setCount] = useState(0)
 

@@ -1,6 +1,11 @@
 import type { SidebarNavItem } from "@app-types/navigation";
 
-export const coreNav: SidebarNavItem[] = [
+/**
+ * Core application navigation items (not from modules).
+ * Currently includes Home page.
+ * Reserved for admin, analytics, and other built-in sections.
+ */
+export const coreNav: SidebarNavItem[] = [ 
   { 
     id: "home",     
     title: "Home",      

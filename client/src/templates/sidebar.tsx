@@ -3,6 +3,22 @@ import { NavLink, useLocation } from "react-router-dom";
 import { loadSidebarNav } from "@navigation/nav-registry";
 import type { SidebarNavItem } from "@app-types/navigation";
 
+//  
+//   Responsive navigation sidebar component.
+//   Features:
+//   - Collapsible/expandable states
+//   - Resizable width (with mouse drag on right edge)
+//   - Hierarchical menu with nested items
+//   - Mobile-responsive with overlay
+//   - Auto-open groups containing active route
+//   - Persistent width via localStorage
+//   
+//   @param collapsed - Whether sidebar is in collapsed state
+//   @param onCollapsedChange - Callback when collapse state changes
+//   @param width - Current sidebar width in pixels
+//   @param onWidthChange - Callback when user resizes sidebar
+//  
+
 type SidebarProps = {
   collapsed: boolean;
   onCollapsedChange: (next: boolean) => void;

@@ -1,3 +1,22 @@
+/**
+ * CRUD form component for creating, editing, viewing, and deleting records via REST API.
+ * Features:
+ * - Four modes: create (POST), edit (PATCH), view (read-only), delete (DELETE)
+ * - Multiple field types: text, number, boolean, date, datetime, select, textarea
+ * - Required field validation and error display
+ * - Per-operation error banners
+ * - Delete confirmation workflow
+ * - Automatic request cleanup on unmount
+ * 
+ * @template TRow - Record data type from/to API
+ * @param fields - Field definitions controlling form layout and types
+ * @param endpoint - REST API endpoint (e.g., "/api/books/") for list/detail operations
+ * @param recordId - Optional record ID; omit for create mode, provide for edit/view/delete
+ * @param initialMode - Starting mode; defaults to "view" if recordId provided, else "create"
+ * @param onSuccess - Optional callback fired after successful save or delete
+ * @param onCancel - Optional callback fired when user cancels (create mode) or closes (view mode)
+ */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiState, FieldDef } from "@app-types/api";
 import { fetchWithRetry } from "@/utils/api-fetch";
@@ -11,7 +30,7 @@ type EntryFormProps<TRow extends Record<string, unknown>> = {
   endpoint: string;
   /** ID of the record to load for edit/view. Omit for create mode. */
   recordId?: string | number;
-  /** Initial mode. Defaults to "create" when no recordId, otherwise "view". */
+  ///** Initial mode. Defaults to "create" when no recordId, otherwise "view". */
   initialMode?: EntryMode;
   /** Called after a successful save or delete */
   onSuccess?: (result: { mode: "saved" | "deleted"; data: TRow | null }) => void;
@@ -28,6 +47,7 @@ function buildDefaultValues<TRow extends Record<string, unknown>>(
   for (const field of fields) {
     defaults[field.key] = field.type === "boolean" ? false : field.type === "number" ? "" : "";
   }
+
   return defaults;
 }
 

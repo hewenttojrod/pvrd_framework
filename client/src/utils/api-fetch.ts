@@ -1,7 +1,22 @@
+/**
+ * API fetch utilities for backend communication.
+ * Provides retry logic with exponential backoff (via setTimeout),
+ * per-attempt 30-second timeout, and automatic URL resolution via VITE_API_BASE_URL.
+ */
+
 const TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 10;
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/$/, "");
 
+/**
+ * Resolves a URL string to its absolute form.
+ * - If input is already a full URL (http:// or https://), returns it unchanged
+ * - If VITE_API_BASE_URL is configured, prepends it to the path
+ * - Otherwise returns the input path as-is (for relative requests)
+ * 
+ * @param input - URL string or relative path
+ * @returns Resolved URL (absolute or relative)
+ */
 export function resolveApiUrl(input: string): string {
   if (/^https?:\/\//i.test(input)) {
     return input;

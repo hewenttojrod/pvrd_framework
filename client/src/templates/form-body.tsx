@@ -1,5 +1,15 @@
 import type { PropsWithChildren } from "react";
 
+/**
+ * Layout wrapper component for form and content pages.
+ * Provides a consistent container with optional header (title/subtitle).
+ * 
+ * @param title - Optional main heading
+ * @param subtitle - Optional description text below title
+ * @param className - Optional additional CSS classes
+ * @param children - Page content to render
+ */
+
 type FormBodyProps = PropsWithChildren<{
   title?: string;
   subtitle?: string;

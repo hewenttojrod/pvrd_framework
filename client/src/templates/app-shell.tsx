@@ -2,6 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import Sidebar from "@templates/sidebar";
 
+/**
+ * Main application shell component.
+ * Provides the top-level layout with a resizable, collapsible sidebar and main content area.
+ * Manages sidebar width and collapse state, persisting sidebar width to localStorage.
+ * 
+ * @param children - Content to render in the main area
+ */
+
 
 const SIDEBAR_WIDTH_DEFAULT = 288;
 const SIDEBAR_WIDTH_MIN = 220;
