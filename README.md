@@ -2,12 +2,12 @@
 Framework Rebuild from scratch for Postgres-Vite/React-Django
 
 # wording key
-To keep verbiage consistent here is what a reference guide:
-client - React frontend
-server - Django/REST API backend
-framework - core Django project found in /server when referencing python code or core React project found in /client when referencing typescript/css/html
-web container - container storing client
-api container - container storing server
+To keep verbiage consistent here is what a reference guide:  
+client - React frontend  
+server - Django/REST API backend  
+framework - core Django project found in /server when referencing python code or core React project found   in /client when referencing typescript/css/html  
+web container - container storing client  
+api container - container storing server  
 
 
 # module structure
@@ -25,6 +25,3 @@ use registry.py in base dir to make it usable by framework
 use:
 from django.conf import settings
 in the file (subject to change)
-
-## shared
-any shared information that might be useful for both client and server

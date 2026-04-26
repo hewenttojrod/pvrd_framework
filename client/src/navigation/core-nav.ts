@@ -11,7 +11,7 @@ export const coreNav: SidebarNavItem[] = [
     title: "Home",      
     path: "/",          
     section: "core",    
-    order: 10 
+    order: -999
   },  
   // {
   //   id: "admin-group",

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 ]
 
 for module in REGISTERED_MODULES:
+    #print(module.app_config_path())
     INSTALLED_APPS.append(module.app_config_path())
 
 MIDDLEWARE = [

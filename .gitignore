@@ -8,3 +8,5 @@ data/**
 .DS_Store
 #modules/**
 .github
+.gitmodules
+modules/module_template

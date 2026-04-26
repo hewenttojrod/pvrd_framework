@@ -4,11 +4,11 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM File: scripts/create_django_app.bat
+REM File: scripts/create_module.bat
 
 if "%1"=="" (
     echo Error: App name is required
-    echo Usage: create_django_app.bat ^<app_name^>
+    echo Usage: create_module.bat ^<app_name^>
     exit /b 1
 )
 
