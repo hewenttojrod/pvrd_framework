@@ -1,8 +1,11 @@
 {
     "files.associations": {
-        ".tsx": "typescriptreact",
-        ".ts": "typescript"
+        "*.tsx": "typescriptreact",
+        "*.ts": "typescript"
     },
+    "typescript.tsdk": "client/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": false,
+    "typescript.preferences.preferTypeOnlyAutoImports": true,
     "python.analysis.extraPaths": [
         "${workspaceFolder}/server",
         "${workspaceFolder}/modules"
