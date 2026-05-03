@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "sslserver",
     "core",
+    "django_celery_results",
 ]
 
 for module in REGISTERED_MODULES:
@@ -145,3 +146,15 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ── Celery ──────────────────────────────────────────────────────────────────
+# Broker: Redis running in the 'redis' Docker service.
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+
+# Store task results in the Django database (requires django_celery_results).
+CELERY_RESULT_BACKEND = "django-db"
+
+CELERY_TIMEZONE = "UTC"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # hard 30-minute cap per task

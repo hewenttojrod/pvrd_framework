@@ -21,6 +21,8 @@ const moduleEntries = import.meta.glob("../../modules/*/client/index.ts") as Rec
   ModuleLoader
 >;
 
+const CeleryTaskListPage = lazy(() => import("./core/celery_task_list"));
+
 const homePageElement = <h1 className="text-2xl font-semibold">Home</h1>;
 const modulesPageElement = <h1 className="text-2xl font-semibold">Modules</h1>;
 
@@ -32,6 +34,14 @@ function renderApp(moduleRoutes: ModuleRoute[]) {
           <Routes>
             <Route path="/" element={homePageElement} />
             <Route path="/modules" element={modulesPageElement} />
+            <Route
+              path="/core/background-tasks"
+              element={
+                <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                  <CeleryTaskListPage />
+                </Suspense>
+              }
+            />
             {moduleRoutes.map((route) => {
               const LazyModulePage = lazy(route.load);
               return (

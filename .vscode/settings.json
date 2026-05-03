@@ -9,5 +9,8 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}/server",
         "${workspaceFolder}/modules"
+    ],
+    "cSpell.words": [
+        "pycache"
     ]
 }

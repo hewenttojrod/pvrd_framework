@@ -13,6 +13,12 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   api:
     build:
       context: ..
@@ -26,13 +32,41 @@ services:
       - DATABASE_PASSWORD=Password6^
       - SERVER_ROOT=/app
       - MODULES_ROOT=/modules
+      - DATA_ROOT=/data
+      - CELERY_BROKER_URL=redis://redis:6379/0
     depends_on:
-      - db   
+      - db
+      - redis
     ports:
       - "8000:8000"
     volumes:
       - ../server:/app
       - ../modules:/modules
+      - ../data:/data
+
+  worker:
+    build:
+      context: ..
+      dockerfile: ./docker/server.Dockerfile
+    command: celery -A config worker --loglevel=info
+    environment:
+      - DATABASE_ENGINE=postgresql
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=app_db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=Password6^
+      - SERVER_ROOT=/app
+      - MODULES_ROOT=/modules
+      - DATA_ROOT=/data
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ../server:/app
+      - ../modules:/modules
+      - ../data:/data
 
   ui:
     build:

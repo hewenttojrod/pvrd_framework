@@ -23,6 +23,7 @@ const clampSidebarWidth = (value: number): number => {
 
 export default function AppShell({ children }: PropsWithChildren) {
   const [collapsed, setCollapsed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window === "undefined") {
@@ -58,10 +59,11 @@ export default function AppShell({ children }: PropsWithChildren) {
         onCollapsedChange={setCollapsed}
         width={sidebarWidth}
         onWidthChange={setSidebarWidth}
+        onReload={() => setReloadKey((k) => k + 1)}
       />
 
       <main className="p-0" style={{ marginLeft: `${resolvedSidebarWidth}px` }}>
-        {children}
+        <div key={reloadKey}>{children}</div>
       </main>
     </div>
   );

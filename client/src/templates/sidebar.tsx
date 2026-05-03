@@ -24,6 +24,7 @@ type SidebarProps = {
   onCollapsedChange: (next: boolean) => void;
   width: number;
   onWidthChange: (next: number) => void;
+  onReload?: () => void;
 };
 
 const SIDEBAR_WIDTH_MIN = 220;
@@ -49,7 +50,7 @@ function sortItems(items: SidebarNavItem[]): SidebarNavItem[] {
   return [...items].sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
 }
 
-export default function Sidebar({ collapsed, onCollapsedChange, width, onWidthChange }: SidebarProps) {
+export default function Sidebar({ collapsed, onCollapsedChange, width, onWidthChange, onReload }: SidebarProps) {
   const [mobileOpenAt, setMobileOpenAt] = useState<string | null>(null);
   const { pathname } = useLocation();
   const mobileOpen = mobileOpenAt === pathname;
@@ -179,7 +180,13 @@ export default function Sidebar({ collapsed, onCollapsedChange, width, onWidthCh
       <li key={item.id}>
         <NavLink
           to={item.path}
-            end
+          end
+          onClick={(e) => {
+            if (pathname === item.path) {
+              e.preventDefault();
+              onReload?.();
+            }
+          }}
           className={({ isActive }) =>
             [
               "block rounded-md py-2 text-sm",
@@ -229,7 +236,7 @@ export default function Sidebar({ collapsed, onCollapsedChange, width, onWidthCh
           <span className={["font-semibold", collapsed ? "hidden" : "block"].join(" ")}>Placeholder</span>
           <button
             type="button"
-            className="rounded border border-slate-300 px-2 py-1 text-xs dark:border-slate-600"
+            className="btn-sidebar"
             onClick={() => onCollapsedChange(!collapsed)}
           >
             {collapsed ? ">" : "<"}
@@ -244,7 +251,7 @@ export default function Sidebar({ collapsed, onCollapsedChange, width, onWidthCh
               <p className="text-sm text-red-500">{navError}</p>
               <button
                 type="button"
-                className="rounded border border-slate-300 px-2 py-1 text-xs dark:border-slate-600"
+                className="btn-sidebar"
                 onClick={async () => {
                   setNavLoading(true);
                   setNavError(null);

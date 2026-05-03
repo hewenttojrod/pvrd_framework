@@ -23,6 +23,7 @@ from src.registry.module_registry import REGISTERED_MODULES
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/core/", include("core.rest_api.api_urls")),
 ]
 
 for module in REGISTERED_MODULES:

@@ -14,15 +14,18 @@ type FormBodyProps = PropsWithChildren<{
   title?: string;
   subtitle?: string;
   className?: string;
+  bodyClassName?: string;
 }>;
 
-export default function FormBody({ title, subtitle, className, children }: FormBodyProps) {
+export default function FormBody({ title, subtitle, className, bodyClassName, children }: FormBodyProps) {
   const classes = [
     "h-[calc(100vh)] w-full overflow-auto border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900",
     className,
   ]
     .filter(Boolean)
     .join(" ");
+
+  const bodyClasses = ["space-y-4", bodyClassName].filter(Boolean).join(" ");
 
   return (
     <section className={classes}>
@@ -32,7 +35,7 @@ export default function FormBody({ title, subtitle, className, children }: FormB
           {subtitle && <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">{subtitle}</p>}
         </header>
       )}
-      <div className="space-y-4">{children}</div>
+      <div className={bodyClasses}>{children}</div>
     </section>
   );
 }

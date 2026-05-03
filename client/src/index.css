@@ -18,6 +18,25 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
+  /* ── UI component color tokens (light) ────────────────── */
+  --ui-border:               #cbd5e1; /* slate-300  */
+  --ui-input-bg:             #ffffff;
+  --ui-input-text:           #0f172a; /* slate-900  */
+  --ui-input-disabled-bg:    #f1f5f9; /* slate-100  */
+  --ui-ring:                 #94a3b8; /* slate-400  */
+  --ui-hover-bg:             #f1f5f9; /* slate-100  — secondary/menu hover */
+  --ui-hover-bg-subtle:      #f1f5f9; /* slate-100  — sidebar/small button hover */
+  --ui-primary-bg:           #1e293b; /* slate-800  */
+  --ui-primary-bg-hover:     #334155; /* slate-700  */
+  --ui-primary-text:         #ffffff;
+  --ui-error-bg:             #fef2f2; /* red-50     */
+  --ui-error-text:           #dc2626; /* red-600    */
+  --ui-error-border:         #fca5a5; /* red-300    */
+  --ui-danger-bg:            #dc2626; /* red-600    */
+  --ui-danger-bg-hover:      #b91c1c; /* red-700    */
+  --ui-danger-text:          #dc2626; /* red-600    */
+  --ui-body-text:            #475569; /* slate-600  */
+
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
@@ -46,11 +65,48 @@
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+    /* ── UI component color tokens (dark) ─────────────────── */
+    --ui-border:               #475569; /* slate-600  */
+    --ui-input-bg:             #1e293b; /* slate-800  */
+    --ui-input-text:           #f1f5f9; /* slate-100  */
+    --ui-input-disabled-bg:    #0f172a; /* slate-900  */
+    --ui-hover-bg:             #1e293b; /* slate-800  */
+    --ui-hover-bg-subtle:      #334155; /* slate-700  */
+    --ui-primary-bg:           #f1f5f9; /* slate-100  */
+    --ui-primary-bg-hover:     #ffffff;
+    --ui-primary-text:         #0f172a; /* slate-900  */
+    --ui-error-bg:             rgba(127, 29, 29, 0.2); /* red-900/20 */
+    --ui-error-text:           #f87171; /* red-400    */
+    --ui-error-border:         #b91c1c; /* red-700    */
+    --ui-danger-text:          #f87171; /* red-400    */
+    --ui-body-text:            #cbd5e1; /* slate-300  */
   }
 
   #social .button-icon {
     filter: invert(1) brightness(2);
   }
+}
+
+/* Expose UI tokens as Tailwind color utilities (bg-ui-*, text-ui-*, border-ui-*) */
+@theme inline {
+  --color-ui-border:            var(--ui-border);
+  --color-ui-input-bg:          var(--ui-input-bg);
+  --color-ui-input-text:        var(--ui-input-text);
+  --color-ui-input-disabled:    var(--ui-input-disabled-bg);
+  --color-ui-ring:              var(--ui-ring);
+  --color-ui-hover:             var(--ui-hover-bg);
+  --color-ui-hover-subtle:      var(--ui-hover-bg-subtle);
+  --color-ui-primary:           var(--ui-primary-bg);
+  --color-ui-primary-hover:     var(--ui-primary-bg-hover);
+  --color-ui-primary-text:      var(--ui-primary-text);
+  --color-ui-error-bg:          var(--ui-error-bg);
+  --color-ui-error-text:        var(--ui-error-text);
+  --color-ui-error-border:      var(--ui-error-border);
+  --color-ui-danger:            var(--ui-danger-bg);
+  --color-ui-danger-hover:      var(--ui-danger-bg-hover);
+  --color-ui-danger-text:       var(--ui-danger-text);
+  --color-ui-body-text:         var(--ui-body-text);
 }
 
 #root {
@@ -117,4 +173,51 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+@layer components {
+  /* Standard text input, textarea, and select — full width with focus ring and disabled state */
+  .form-input {
+    @apply w-full rounded-md border border-ui-border bg-ui-input-bg px-3 py-2 text-sm text-ui-input-text focus:outline-none focus:ring-2 focus:ring-ui-ring disabled:bg-ui-input-disabled;
+  }
+
+  /* Inline error message banner for API/form operation failures */
+  .error-banner {
+    @apply rounded-md bg-ui-error-bg px-4 py-2 text-sm text-ui-error-text;
+  }
+
+  /* Primary action button — solid dark fill (e.g. Save, Edit) */
+  .btn-primary {
+    @apply rounded-md bg-ui-primary px-4 py-2 text-sm text-ui-primary-text hover:bg-ui-primary-hover;
+  }
+
+  /* Secondary action button — outline style (e.g. Cancel, Close) */
+  .btn-secondary {
+    @apply rounded-md border border-ui-border px-4 py-2 text-sm hover:bg-ui-hover;
+  }
+
+  /* Small utility button used in the sidebar (collapse/expand, retry, refresh) */
+  .btn-sidebar {
+    @apply rounded border border-ui-border px-2 py-1 text-xs hover:bg-ui-hover-subtle;
+  }
+
+  /* Destructive confirm button — solid red fill (e.g. Yes, delete) */
+  .btn-danger {
+    @apply rounded-md bg-ui-danger px-3 py-1 text-sm text-white hover:bg-ui-danger-hover;
+  }
+
+  /* Destructive action button — red outline before confirmation (e.g. Delete) */
+  .btn-danger-outline {
+    @apply rounded-md border border-ui-error-border px-4 py-2 text-sm text-ui-danger-text hover:bg-ui-error-bg;
+  }
+
+  /* Standard body/paragraph text in page content areas */
+  .body-text {
+    @apply text-sm text-ui-body-text;
+  }
+
+  /* Traditional hyperlink — blue underlined anchor */
+  .hyperlink {
+    @apply text-blue-400 underline hover:text-blue-600;
+  }
 }

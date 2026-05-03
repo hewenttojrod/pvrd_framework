@@ -10,3 +10,6 @@ psycopg2
 bungio
 django-ninja
 requests_oauthlib
+beautifulsoup4
+celery[redis]
+django-celery-results

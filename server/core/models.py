@@ -1,9 +1,7 @@
 from django.db import models
 
-# Create your models here.
 from core._models.base_model import BaseModel
 
-# Create your models here.
 
 class dummy_table(BaseModel):
     char_field = models.CharField(max_length=200)

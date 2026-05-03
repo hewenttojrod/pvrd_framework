@@ -13,6 +13,13 @@ export const coreNav: SidebarNavItem[] = [
     section: "core",    
     order: -999
   },  
+  {
+    id: "core-background-tasks",
+    title: "Background Tasks",
+    path: "/core/background-tasks",
+    section: "core",
+    order: -980,
+  },
   // {
   //   id: "admin-group",
   //   title: "Admin",

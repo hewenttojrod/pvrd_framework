@@ -34,8 +34,23 @@ type DataGridProps<TRow extends Record<string, unknown>> = {
   endpoint: string;
   /** Optional query params appended to each request */
   params?: Record<string, string>;
+  /** Optional row key field used for partial row patch updates */
+  rowKey?: keyof TRow;
+  /** Optional updated rows to merge into existing successful grid state */
+  rowPatches?: TRow[];
   /** Optional right-click menu actions for rows or grid background */
   contextMenuActions?: GridContextAction<TRow>[];
+  /** Optional callback invoked before the grid reloads via the toolbar refresh button */
+  onRefresh?: () => void | Promise<void>;
+  /** Optional layout options for sticky headers and bounded scroll area */
+  layoutOptions?: {
+    /** When true, table is forced to fill the parent width. */
+    stretchToContainer?: boolean;
+    /** When true, table header stays fixed while rows scroll. */
+    stickyHeader?: boolean;
+    /** Optional max height for row scroll area (for example: "60vh" or "480px"). */
+    maxHeight?: string;
+  };
 };
 
 type MenuState<TRow extends Record<string, unknown>> = {
@@ -76,7 +91,11 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
   columns,
   endpoint,
   params,
+  rowKey,
+  rowPatches,
   contextMenuActions,
+  onRefresh,
+  layoutOptions,
 }: DataGridProps<TRow>) {
   const [state, setState] = useState<ApiState<ApiListResponse<TRow>>>({ status: "idle" });
   const [sort, setSort] = useState<SortState | null>(null);
@@ -88,6 +107,40 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
     left.localeCompare(right)
   );
   const paramsKey = JSON.stringify(paramsEntries);
+
+  useEffect(() => {
+    if (!rowKey || !rowPatches || rowPatches.length === 0) {
+      return;
+    }
+
+    setState((prev) => {
+      if (prev.status !== "success") {
+        return prev;
+      }
+
+      const patchMap = new Map<unknown, TRow>();
+      for (const patch of rowPatches) {
+        patchMap.set(patch[rowKey], patch);
+      }
+
+      if (patchMap.size === 0) {
+        return prev;
+      }
+
+      const nextRows = prev.data.results.map((row) => {
+        const patch = patchMap.get(row[rowKey]);
+        return patch ?? row;
+      });
+
+      return {
+        status: "success",
+        data: {
+          ...prev.data,
+          results: nextRows,
+        },
+      };
+    });
+  }, [rowKey, rowPatches]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -187,10 +240,98 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
     setMenu(null);
   };
 
+  const handleRefreshClick = () => {
+    void onRefresh?.();
+    setRefreshTick((tick) => tick + 1);
+  };
+
+  const stickyHeader = Boolean(layoutOptions?.stickyHeader);
+  const stretchToContainer = layoutOptions?.stretchToContainer !== false;
+
+  const tableElement = (
+    <table className={[stretchToContainer ? "w-full min-w-full" : "w-full", "table-auto border-collapse text-sm"].join(" ")}>
+      <thead className={["bg-slate-100 dark:bg-slate-800", stickyHeader ? "sticky top-0 z-10" : ""].join(" ")}>
+        <tr>
+          {columns.map((col) => (
+            <th
+              key={col.key}
+              style={col.width ? { width: col.width } : undefined}
+              className={[
+                "px-4 py-2 text-left font-medium text-slate-700 dark:text-slate-300",
+                col.sortable ? "cursor-pointer select-none hover:text-slate-900 dark:hover:text-white" : "",
+              ].join(" ")}
+              onClick={() => toggleSort(col.key, col.sortable)}
+              aria-sort={
+                sort?.key === col.key
+                  ? sort.dir === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : undefined
+              }
+            >
+              <span className="flex items-center gap-1">
+                {col.label}
+                {col.sortable && sort?.key === col.key && (
+                  <span aria-hidden="true">{sort.dir === "asc" ? "↑" : "↓"}</span>
+                )}
+              </span>
+            </th>
+          ))}
+        </tr>
+      </thead>
+
+      <tbody>
+        {isLoading && (
+          <tr>
+            <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-400">
+              Loading…
+            </td>
+          </tr>
+        )}
+
+        {isError && (
+          <tr>
+            <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-red-500">
+              {state.status === "error" ? state.message : ""}
+            </td>
+          </tr>
+        )}
+
+        {!isLoading && !isError && rows.length === 0 && (
+          <tr>
+            <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-400">
+              No records found.
+            </td>
+          </tr>
+        )}
+
+        {!isLoading &&
+          rows.map((row, rowIdx) => (
+            <tr
+              key={rowIdx}
+              className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+              onContextMenu={(event) => openContextMenu(event, row, rowIdx)}
+            >
+              {columns.map((col) => (
+                <td key={col.key} className="px-4 py-2 text-slate-700 dark:text-slate-300">
+                  {col.render
+                    ? col.render(row[col.key], row)
+                    : String(row[col.key] ?? "")}
+                </td>
+              ))}
+            </tr>
+          ))}
+      </tbody>
+    </table>
+  );
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-auto rounded-md border border-slate-200 dark:border-slate-700"
+      className={[
+        "relative w-full rounded-md border border-slate-200 dark:border-slate-700",
+        stickyHeader ? "overflow-hidden" : "overflow-auto",
+      ].join(" ")}
       onContextMenu={(event) => openContextMenu(event, null, null)}
     >
       {/* Toolbar */}
@@ -201,88 +342,24 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => setRefreshTick((t) => t + 1)}
-          className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
+          onClick={handleRefreshClick}
+          className="btn-sidebar disabled:opacity-50"
         >
           {isLoading ? "Loading…" : "Refresh"}
         </button>
       </div>
 
       {/* Table */}
-      <table className="w-full table-auto border-collapse text-sm">
-        <thead className="bg-slate-100 dark:bg-slate-800">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                style={col.width ? { width: col.width } : undefined}
-                className={[
-                  "px-4 py-2 text-left font-medium text-slate-700 dark:text-slate-300",
-                  col.sortable ? "cursor-pointer select-none hover:text-slate-900 dark:hover:text-white" : "",
-                ].join(" ")}
-                onClick={() => toggleSort(col.key, col.sortable)}
-                aria-sort={
-                  sort?.key === col.key
-                    ? sort.dir === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : undefined
-                }
-              >
-                <span className="flex items-center gap-1">
-                  {col.label}
-                  {col.sortable && sort?.key === col.key && (
-                    <span aria-hidden="true">{sort.dir === "asc" ? "↑" : "↓"}</span>
-                  )}
-                </span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-
-        <tbody>
-          {isLoading && (
-            <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-400">
-                Loading…
-              </td>
-            </tr>
-          )}
-
-          {isError && (
-            <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-red-500">
-                {state.status === "error" ? state.message : ""}
-              </td>
-            </tr>
-          )}
-
-          {!isLoading && !isError && rows.length === 0 && (
-            <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-400">
-                No records found.
-              </td>
-            </tr>
-          )}
-
-          {!isLoading &&
-            rows.map((row, rowIdx) => (
-              <tr
-                key={rowIdx}
-                className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
-                onContextMenu={(event) => openContextMenu(event, row, rowIdx)}
-              >
-                {columns.map((col) => (
-                  <td key={col.key} className="px-4 py-2 text-slate-700 dark:text-slate-300">
-                    {col.render
-                      ? col.render(row[col.key], row)
-                      : String(row[col.key] ?? "")}
-                  </td>
-                ))}
-              </tr>
-            ))}
-        </tbody>
-      </table>
+      {stickyHeader ? (
+        <div
+          className="overflow-auto"
+          style={layoutOptions?.maxHeight ? { maxHeight: layoutOptions.maxHeight } : undefined}
+        >
+          {tableElement}
+        </div>
+      ) : (
+        tableElement
+      )}
 
       {menu && visibleActions.length > 0 && (
         <div
