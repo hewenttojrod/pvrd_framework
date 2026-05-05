@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiState, FieldDef } from "@app-types/api";
 import { fetchWithRetry } from "@/utils/api-fetch";
+import { FormFieldLabel } from "@templates/form-field-label";
 
 type EntryMode = "create" | "edit" | "view";
 
@@ -36,6 +37,8 @@ type EntryFormProps<TRow extends Record<string, unknown>> = {
   onSuccess?: (result: { mode: "saved" | "deleted"; data: TRow | null }) => void;
   /** Called when the user cancels */
   onCancel?: () => void;
+  /** Optional values to pre-seed the create form (ignored when recordId is set) */
+  initialValues?: Partial<Record<keyof TRow, unknown>>;
 };
 
 type FormValues = Record<string, unknown>;
@@ -134,11 +137,15 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
   initialMode,
   onSuccess,
   onCancel,
+  initialValues,
 }: EntryFormProps<TRow>) {
   const derivedInitialMode: EntryMode = initialMode ?? (recordId != null ? "view" : "create");
 
   const [mode, setMode] = useState<EntryMode>(derivedInitialMode);
-  const [values, setValues] = useState<FormValues>(buildDefaultValues(fields));
+  const [values, setValues] = useState<FormValues>(() => ({
+    ...buildDefaultValues(fields),
+    ...(recordId == null && initialValues ? initialValues : {}),
+  }));
   const [fetchState, setFetchState] = useState<ApiState<TRow>>({ status: "idle" });
   const [saveState, setSaveState] = useState<ApiState<TRow>>({ status: "idle" });
   const [deleteState, setDeleteState] = useState<ApiState<null>>({ status: "idle" });
@@ -255,15 +262,12 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
             key={field.key}
             className={field.type === "textarea" ? "sm:col-span-2" : ""}
           >
-            <label
+            <FormFieldLabel
               htmlFor={field.key}
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              {field.label}
-              {field.required && isEditing && (
-                <span className="ml-1 text-red-500" aria-hidden="true">*</span>
-              )}
-            </label>
+              label={field.label}
+              hintInfo={field.hint_info}
+              required={field.required && isEditing}
+            />
             {renderInput(field, values[field.key], handleChange, !isEditing || isWorking)}
           </div>
         ))}

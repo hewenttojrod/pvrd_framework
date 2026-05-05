@@ -94,6 +94,7 @@ export type GridContextAction<TRow extends Record<string, unknown> = Record<stri
  * @property required - If true, field is marked as required and validated before submit
  * @property options - Array of label/value pairs for select fields
  * @property placeholder - Placeholder text shown when field is empty
+ * @property hint_info - Optional hover hint shown beside the label
  */
 export type FieldDef<TRow extends Record<string, unknown> = Record<string, unknown>> = {
   /** Matches the key in the API object */
@@ -110,6 +111,8 @@ export type FieldDef<TRow extends Record<string, unknown> = Record<string, unkno
   options?: SelectOption[];
   /** Placeholder text */
   placeholder?: string;
+  /** Optional hover hint shown beside the label */
+  hint_info?: string;
 };
 
 /**

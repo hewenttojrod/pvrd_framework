@@ -158,3 +158,16 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_TIMEZONE = "UTC"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # hard 30-minute cap per task
+
+# Periodic scheduler ticks configured per module via each module's registry.py.
+CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {}
+for module in REGISTERED_MODULES:
+    schedule_task = module.schedule_task_path()
+    if not schedule_task:
+        continue
+
+    interval_seconds = float(module.schedule_interval_seconds or 60.0)
+    CELERY_BEAT_SCHEDULE[f"{module.name}-process-schedules"] = {
+        "task": schedule_task,
+        "schedule": max(1.0, interval_seconds),
+    }

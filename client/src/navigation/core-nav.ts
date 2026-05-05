@@ -20,6 +20,13 @@ export const coreNav: SidebarNavItem[] = [
     section: "core",
     order: -980,
   },
+  {
+    id: "core-schema-mappings",
+    title: "Source Mapping",
+    path: "/core/schema-mappings",
+    section: "core",
+    order: -960,
+  },
   // {
   //   id: "admin-group",
   //   title: "Admin",

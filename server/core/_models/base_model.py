@@ -6,8 +6,9 @@ class ModuleModelBase(ModelBase):
     def __new__(mcls, name, bases, attrs, **kwargs):
         meta = attrs.get("Meta")
         is_abstract = bool(meta and getattr(meta, "abstract", False))
+        is_proxy = bool(meta and getattr(meta, "proxy", False))
 
-        if not is_abstract and "id" not in attrs:
+        if not is_abstract and not is_proxy and "id" not in attrs:
             attrs[f"{name.lower()}_id"] = models.BigAutoField(
                 primary_key=True,
                 db_column=f"{name.lower()}_id",
@@ -15,7 +16,7 @@ class ModuleModelBase(ModelBase):
 
         cls = super().__new__(mcls, name, bases, attrs, **kwargs)
 
-        if cls._meta.abstract:
+        if cls._meta.abstract or cls._meta.proxy:
             return cls
 
         # If model keeps Django's default table naming pattern, rewrite it to

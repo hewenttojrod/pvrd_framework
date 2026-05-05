@@ -16,3 +16,8 @@ Description: Django web server used to handle dal/bll and db backend. Communicat
 name: ui
 Port: 5173
 Description: React frontend to handle web pages. Communicates with django backend via REST APIs
+
+Startup behavior:
+- Installs npm dependencies at container startup.
+- Verifies ECharts is present in node_modules.
+- Runs an ESM import check for ECharts before starting Vite.

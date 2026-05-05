@@ -68,6 +68,30 @@ services:
       - ../modules:/modules
       - ../data:/data
 
+  beat:
+    build:
+      context: ..
+      dockerfile: ./docker/server.Dockerfile
+    command: celery -A config beat --loglevel=info
+    environment:
+      - DATABASE_ENGINE=postgresql
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=app_db
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=Password6^
+      - SERVER_ROOT=/app
+      - MODULES_ROOT=/modules
+      - DATA_ROOT=/data
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ../server:/app
+      - ../modules:/modules
+      - ../data:/data
+
   ui:
     build:
       context: ..

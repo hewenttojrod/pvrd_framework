@@ -22,6 +22,8 @@ const moduleEntries = import.meta.glob("../../modules/*/client/index.ts") as Rec
 >;
 
 const CeleryTaskListPage = lazy(() => import("./core/celery_task_list"));
+const SchemaMappingManagerPage = lazy(() => import("./core/schema_mapping_manager"));
+const SchemaMappingEditorPage = lazy(() => import("./core/schema_mapping_editor"));
 
 const homePageElement = <h1 className="text-2xl font-semibold">Home</h1>;
 const modulesPageElement = <h1 className="text-2xl font-semibold">Modules</h1>;
@@ -39,6 +41,23 @@ function renderApp(moduleRoutes: ModuleRoute[]) {
               element={
                 <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
                   <CeleryTaskListPage />
+                </Suspense>
+              }
+            />
+            <Route path="/core/metrics" element={<Navigate to="/core/schema-mappings" replace />} />
+            <Route
+              path="/core/schema-mappings"
+              element={
+                <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                  <SchemaMappingManagerPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/core/schema-mappings/edit"
+              element={
+                <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                  <SchemaMappingEditorPage />
                 </Suspense>
               }
             />

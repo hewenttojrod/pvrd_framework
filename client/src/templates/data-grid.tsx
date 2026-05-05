@@ -15,6 +15,7 @@
 //  * @param contextMenuActions - Optional right-click menu actions
 //  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ApiListResponse, ApiState, ColumnDef, GridActionContext, GridContextAction } from "@app-types/api";
 import { fetchWithRetry, resolveApiUrl } from "@/utils/api-fetch";
 
@@ -40,6 +41,8 @@ type DataGridProps<TRow extends Record<string, unknown>> = {
   rowPatches?: TRow[];
   /** Optional right-click menu actions for rows or grid background */
   contextMenuActions?: GridContextAction<TRow>[];
+  /** Optional row click handler for opening detail viewers */
+  onRowClick?: (row: TRow) => void;
   /** Optional callback invoked before the grid reloads via the toolbar refresh button */
   onRefresh?: () => void | Promise<void>;
   /** Optional layout options for sticky headers and bounded scroll area */
@@ -84,6 +87,15 @@ async function fetchPage<TRow>(
     };
   }
 
+  // Django Ninja PageNumberPagination returns { items, count } — normalize to { results, count }
+  const obj = payload as Record<string, unknown>;
+  if ("items" in obj && !("results" in obj)) {
+    return {
+      results: obj.items as TRow[],
+      count: typeof obj.count === "number" ? obj.count : (obj.items as TRow[]).length,
+    };
+  }
+
   return payload;
 }
 
@@ -94,6 +106,7 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
   rowKey,
   rowPatches,
   contextMenuActions,
+  onRowClick,
   onRefresh,
   layoutOptions,
 }: DataGridProps<TRow>) {
@@ -217,13 +230,9 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
     event.preventDefault();
     event.stopPropagation();
 
-    const rect = containerRef.current?.getBoundingClientRect();
-    const x = rect ? event.clientX - rect.left : event.clientX;
-    const y = rect ? event.clientY - rect.top : event.clientY;
-
     setMenu({
-      x,
-      y,
+      x: event.clientX,
+      y: event.clientY,
       context: {
         row,
         rowIndex,
@@ -309,7 +318,11 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
           rows.map((row, rowIdx) => (
             <tr
               key={rowIdx}
-              className="border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+              className={[
+                "border-t border-slate-100 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50",
+                onRowClick ? "cursor-pointer" : "",
+              ].join(" ")}
+              onClick={() => onRowClick?.(row)}
               onContextMenu={(event) => openContextMenu(event, row, rowIdx)}
             >
               {columns.map((col) => (
@@ -361,10 +374,10 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
         tableElement
       )}
 
-      {menu && visibleActions.length > 0 && (
+      {menu && visibleActions.length > 0 && createPortal(
         <div
-          className="absolute z-50 min-w-48 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-          style={{ left: menu.x, top: menu.y }}
+          className="fixed min-w-48 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+          style={{ left: menu.x, top: menu.y, zIndex: 2000 }}
           role="menu"
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -383,7 +396,8 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
