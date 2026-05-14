@@ -48,3 +48,12 @@ class column_mapping(BaseModel):
 
     def __str__(self):
         return f"{self.source_system}:{self.dataset_key}:{self.raw_column}"
+
+    def get_role(self):
+        if self.unit_type_id and self.unit_type and self.unit_type.base_data_type == "datetime":
+            return "timestamp"
+        if self.unit_type_id:
+            return "value"
+        if self.column_label:
+            return "dimension"
+        return "unmapped"

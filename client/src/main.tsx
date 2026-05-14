@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Application entry point for Vite + React.
  * Dynamically loads all module routes from modules/<module>/client/index.ts,
@@ -7,6 +8,7 @@ import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "@templates/app-shell";
+import LoadingState from "@templates/loading-state";
 import "./index.css";
 import type { ModuleRoute } from "@app-types/navigation";
 
@@ -25,8 +27,13 @@ const CeleryTaskListPage = lazy(() => import("./core/celery_task_list"));
 const SchemaMappingManagerPage = lazy(() => import("./core/schema_mapping_manager"));
 const SchemaMappingEditorPage = lazy(() => import("./core/schema_mapping_editor"));
 
-const homePageElement = <h1 className="text-2xl font-semibold">Home</h1>;
-const modulesPageElement = <h1 className="text-2xl font-semibold">Modules</h1>;
+function HomePage() {
+  return <h1 className="text-2xl font-semibold">Home</h1>;
+}
+
+function ModulesPage() {
+  return <h1 className="text-2xl font-semibold">Modules</h1>;
+}
 
 function renderApp(moduleRoutes: ModuleRoute[]) {
   createRoot(document.getElementById("root")!).render(
@@ -34,12 +41,12 @@ function renderApp(moduleRoutes: ModuleRoute[]) {
       <BrowserRouter>
         <AppShell>
           <Routes>
-            <Route path="/" element={homePageElement} />
-            <Route path="/modules" element={modulesPageElement} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/modules" element={<ModulesPage />} />
             <Route
               path="/core/background-tasks"
               element={
-                <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                <Suspense fallback={<LoadingState label="Loading page..." />}>
                   <CeleryTaskListPage />
                 </Suspense>
               }
@@ -48,7 +55,7 @@ function renderApp(moduleRoutes: ModuleRoute[]) {
             <Route
               path="/core/schema-mappings"
               element={
-                <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                <Suspense fallback={<LoadingState label="Loading page..." />}>
                   <SchemaMappingManagerPage />
                 </Suspense>
               }
@@ -56,7 +63,7 @@ function renderApp(moduleRoutes: ModuleRoute[]) {
             <Route
               path="/core/schema-mappings/edit"
               element={
-                <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                <Suspense fallback={<LoadingState label="Loading page..." />}>
                   <SchemaMappingEditorPage />
                 </Suspense>
               }
@@ -68,7 +75,7 @@ function renderApp(moduleRoutes: ModuleRoute[]) {
                   key={route.path}
                   path={route.path}
                   element={
-                    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading page...</div>}>
+                    <Suspense fallback={<LoadingState label="Loading page..." />}>
                       <LazyModulePage />
                     </Suspense>
                   }

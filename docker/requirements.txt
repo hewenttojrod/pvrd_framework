@@ -13,3 +13,5 @@ requests_oauthlib
 beautifulsoup4
 celery[redis]
 django-celery-results
+django-extensions
+ipython

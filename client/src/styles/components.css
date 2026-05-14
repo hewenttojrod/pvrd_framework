@@ -1,0 +1,270 @@
+/**
+ * Reusable UI component classes.
+ * Tailwind component layer definitions for form inputs, buttons, banners,
+ * data tables, grids, detail tables, and other shared UI primitives.
+ */
+@layer components {
+  .form-input {
+    @apply w-full rounded-md border border-ui-border bg-ui-input-bg px-3 py-2 text-sm text-ui-input-text focus:outline-none focus:ring-2 focus:ring-ui-ring disabled:bg-ui-input-disabled;
+  }
+
+  .error-banner {
+    @apply rounded-md bg-ui-error-bg px-4 py-2 text-sm text-ui-error-text;
+  }
+
+  .btn-primary {
+    @apply rounded-md bg-ui-primary px-4 py-2 text-sm text-ui-primary-text hover:bg-ui-primary-hover;
+  }
+
+  .btn-secondary {
+    @apply rounded-md border border-ui-border px-4 py-2 text-sm hover:bg-ui-hover;
+  }
+
+  .btn-sidebar {
+    @apply rounded border border-ui-border px-2 py-1 text-xs hover:bg-ui-hover-subtle;
+  }
+
+  .btn-danger {
+    @apply rounded-md bg-ui-danger px-3 py-1 text-sm text-white hover:bg-ui-danger-hover;
+  }
+
+  .btn-danger-outline {
+    @apply rounded-md border border-ui-error-border px-4 py-2 text-sm text-ui-danger-text hover:bg-ui-error-bg;
+  }
+
+  .body-text {
+    @apply text-sm text-ui-body-text;
+  }
+
+  .hyperlink {
+    @apply text-blue-400 underline hover:text-blue-600;
+  }
+
+  .field-stack {
+    @apply text-sm;
+  }
+
+  .field-stack--wide {
+    @apply md:col-span-2;
+  }
+
+  .field-stack__control {
+    @apply mt-1;
+  }
+
+  .field-stack__control--textarea {
+    @apply min-h-24;
+  }
+
+  .checkbox-row {
+    @apply mt-4 flex flex-wrap gap-4 text-sm;
+  }
+
+  .checkbox-field {
+    @apply inline-flex items-center gap-2;
+  }
+
+  .action-row {
+    @apply mt-4 flex gap-3;
+  }
+
+  .data-table-wrap {
+    @apply overflow-x-auto;
+  }
+
+  .data-table {
+    @apply w-full table-auto border-collapse;
+  }
+
+  .data-table--compact {
+    @apply text-xs;
+  }
+
+  .data-table--regular {
+    @apply text-sm;
+  }
+
+  .data-table__thead {
+    @apply bg-slate-100 dark:bg-slate-800;
+  }
+
+  .data-table__thead--sticky {
+    @apply sticky top-0 z-10;
+  }
+
+  .data-table__head-row {
+    @apply text-left;
+  }
+
+  .data-table__header-cell {
+    @apply px-4 py-2 text-left font-medium text-slate-700 dark:text-slate-300;
+  }
+
+  .data-table__header-cell--sortable {
+    @apply cursor-pointer select-none hover:text-slate-900 dark:hover:text-white;
+  }
+
+  .data-table__cell {
+    @apply px-3 py-2;
+  }
+
+  .data-table__cell--compact {
+    @apply px-2 py-1;
+  }
+
+  .data-table__cell--numeric {
+    @apply text-center;
+  }
+
+  .data-table__cell--muted {
+    @apply text-slate-500;
+  }
+
+  .data-table__cell--detail {
+    @apply bg-slate-50 px-4 py-3 dark:bg-slate-900;
+  }
+  .data-table__body-cell {
+    @apply px-4 py-2 text-slate-700 dark:text-slate-300;
+  }
+  .data-table__row {
+    @apply border-t border-slate-100 dark:border-slate-800;
+  }
+
+  .data-table__row--compact {
+    @apply dark:border-slate-700;
+  }
+
+  .data-table__row--interactive {
+    @apply cursor-context-menu select-none hover:bg-slate-50 dark:hover:bg-slate-800/50;
+  }
+
+  .data-table__row--selected {
+    @apply bg-blue-50 dark:bg-blue-950;
+  }
+
+  .data-table__row--success {
+    @apply bg-emerald-50 dark:bg-emerald-950;
+  }
+
+  .data-table__row--danger {
+    @apply bg-red-50 dark:bg-red-950;
+  }
+
+  .data-table__message-cell {
+    @apply max-w-xs truncate;
+  }
+
+  .preview-panel {
+    @apply mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900;
+  }
+
+  .preview-panel__meta {
+    @apply mt-1 text-xs text-slate-600 dark:text-slate-300;
+  }
+
+  .preview-panel__body {
+    @apply mt-2 max-h-56 overflow-auto rounded border border-slate-200 bg-white p-2 text-xs dark:border-slate-700 dark:bg-slate-800;
+  }
+
+  .preview-panel__empty {
+    @apply text-slate-500;
+  }
+
+  .preview-panel__list {
+    @apply space-y-2;
+  }
+
+  .preview-panel__item {
+    @apply rounded border p-2;
+  }
+
+  .preview-panel__item--success {
+    @apply border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950;
+  }
+
+  .preview-panel__item--danger {
+    @apply border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950;
+  }
+
+  .preview-panel__item--neutral {
+    @apply border-slate-100 dark:border-slate-700;
+  }
+
+  .preview-panel__status--success {
+    @apply text-emerald-600 dark:text-emerald-400;
+  }
+
+  .preview-panel__status--danger {
+    @apply text-red-600 dark:text-red-400;
+  }
+
+  .preview-panel__note {
+    @apply mt-0.5 text-slate-400;
+  }
+
+  .preview-panel__link {
+    @apply mt-0.5 break-all text-slate-500;
+  }
+
+  .preview-panel__link--accent {
+    @apply text-blue-600 dark:text-blue-400;
+  }
+
+  .context-menu {
+    @apply fixed min-w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900;
+  }
+
+  .context-menu__item {
+    @apply block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800;
+  }
+
+  .empty-state-cell {
+    @apply px-3 py-3 text-slate-500;
+  }
+
+  /* Form Layouts */
+  .form-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2;
+  }
+
+  .form-section {
+    @apply space-y-6;
+  }
+
+  .form-actions {
+    @apply flex flex-wrap items-center gap-3 border-t border-ui-border pt-4;
+  }
+
+  .form-label-group {
+    @apply mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300;
+  }
+
+  .checkbox-label-group {
+    @apply flex items-center gap-2 text-sm;
+  }
+
+  .checkbox-hint {
+    @apply inline-block text-slate-600 dark:text-slate-400;
+  }
+
+  /* Detail View Tables */
+  .detail-table-wrap {
+    @apply overflow-x-auto rounded-md border border-ui-border;
+  }
+
+  .detail-table {
+    @apply w-full table-auto border-collapse text-sm;
+  }
+
+  .detail-table__row {
+    @apply border-t border-ui-border;
+  }
+
+  .detail-table__header-cell {
+    @apply w-52 bg-slate-50 px-4 py-2 text-left font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300;
+  }
+
+  .detail-table__value-cell {
+    @apply px-4 py-2 text-slate-700 dark:text-slate-300;
+  }
+}

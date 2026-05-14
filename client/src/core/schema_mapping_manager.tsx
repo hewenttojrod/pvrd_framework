@@ -1,3 +1,8 @@
+/**
+ * Schema mapping manager page.
+ * Lists all source mappings with their field counts and mapping status.
+ * Clicking a row navigates to the schema mapping editor for that source.
+ */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@app-types/api";

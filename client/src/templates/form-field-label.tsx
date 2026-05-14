@@ -1,3 +1,15 @@
+/**
+ * Accessible form field label with optional required marker and hover tooltip.
+ *
+ * Two rendering modes:
+ * - When `htmlFor` is provided: renders as a `<label>` element associated with the input.
+ * - When `htmlFor` is absent: renders as a `<span>` (for use beside checkboxes where
+ *   the outer `<label>` wraps both input and label text).
+ *
+ * The `FieldHint` sub-component shows a "?" badge that, on hover, renders a tooltip via
+ * React Portal into `document.body`. Portal positioning ensures the tooltip is not clipped
+ * by parent overflow constraints, which is a common issue with CSS-only tooltip approaches.
+ */
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -9,6 +21,12 @@ type FormFieldLabelProps = {
   className?: string;
 };
 
+/**
+ * Renders a "?" badge that shows a fixed-position tooltip on hover.
+ * The tooltip is rendered into `document.body` via a React Portal so it appears above
+ * all other stacking contexts (modals, sticky headers, overflow:hidden containers).
+ * Position is calculated from the badge's `getBoundingClientRect()` at hover time.
+ */
 function FieldHint({ text }: { text: string }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<HTMLSpanElement>(null);

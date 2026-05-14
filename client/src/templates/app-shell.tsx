@@ -1,3 +1,8 @@
+/**
+ * Top-level application shell component.
+ * Composes the resizable, collapsible Sidebar with the main content area.
+ * Persists sidebar width to localStorage across sessions.
+ */
 import { useEffect, useMemo, useState } from "react";
 import type { PropsWithChildren } from "react";
 import Sidebar from "@templates/sidebar";

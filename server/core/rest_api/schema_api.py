@@ -7,6 +7,8 @@ from ninja.pagination import paginate, PageNumberPagination
 from django.shortcuts import get_object_or_404
 
 from core.models import column_mapping, raw_record, source_file, unit_type
+from .source_mapping_service import matching_source_file_ids, matching_source_files, resolve_dataset_key
+from .schema_run_service import test_run_source_mapping, run_source_mapping as run_source_mapping_service
 
 
 # ---------------------------------------------------------------------------
@@ -18,19 +20,6 @@ def _suggest_semantic_key(raw_column: str) -> str:
     val = raw_column.lower().strip()
     val = re.sub(r"[^a-z0-9]+", "_", val)
     return val.strip("_")
-
-
-def _resolve_dataset_key(src: source_file) -> str:
-    if src.source_system.lower() == "nyiso":
-        prefetched = getattr(src, "_prefetched_objects_cache", {}).get("nyiso_reports")
-        if prefetched is not None:
-            report_link = prefetched[0] if prefetched else None
-        else:
-            report_link = src.nyiso_reports.select_related("nyiso_report").first()
-
-        if report_link and report_link.nyiso_report:
-            return report_link.nyiso_report.code
-    return src.source_file_name
 
 
 def _infer_role(mapping: column_mapping) -> str:
@@ -89,7 +78,7 @@ def _collect_source_mapping_summaries() -> list[SourceMappingSummaryRow]:
     grouped_file_ids: dict[tuple[str, str], set[int]] = {}
 
     for src in files:
-        dataset_key = _resolve_dataset_key(src)
+        dataset_key = resolve_dataset_key(src)
         group_key = (src.source_system, dataset_key)
         file_to_group[src.source_file_id] = group_key
         grouped_fields.setdefault(group_key, set())
@@ -136,17 +125,7 @@ def _collect_source_mapping_summaries() -> list[SourceMappingSummaryRow]:
 
 
 def _collect_column_mapping_fields(source_system: str, dataset_key: str) -> list[ColumnMappingFieldRow]:
-    files = list(
-        source_file.objects.filter(source_system__iexact=source_system)
-        .only("source_file_id", "source_file_name", "source_system")
-        .prefetch_related("nyiso_reports__nyiso_report")
-        .order_by("source_file_id")
-    )
-    matching_file_ids = [
-        src.source_file_id
-        for src in files
-        if _resolve_dataset_key(src).lower() == dataset_key.lower()
-    ]
+    matching_file_ids = matching_source_file_ids(source_system, dataset_key)
 
     field_names: set[str] = set()
     if matching_file_ids:
@@ -386,17 +365,7 @@ def get_source_mapping_sample_rows(
 ):
     safe_limit = max(1, min(limit, 200))
 
-    files = list(
-        source_file.objects.filter(source_system__iexact=source_system)
-        .only("source_file_id", "source_system", "source_file_name")
-        .prefetch_related("nyiso_reports__nyiso_report")
-        .order_by("source_file_id")
-    )
-    matching_file_ids = [
-        src.source_file_id
-        for src in files
-        if _resolve_dataset_key(src).lower() == dataset_key.lower()
-    ]
+    matching_file_ids = matching_source_file_ids(source_system, dataset_key)
 
     if not matching_file_ids:
         return []
@@ -434,251 +403,6 @@ class SourceMappingRunOut(Schema):
     error_detail: Optional[str] = None
 
 
-def _test_run_source_mapping(source_system: str, dataset_key: str) -> SourceMappingTestRunOut:
-    """Test a source mapping by simulating normalization across all matching files."""
-    from decimal import Decimal, InvalidOperation
-    
-    # Find source files for this source_system/dataset_key
-    files = list(
-        source_file.objects.filter(source_system__iexact=source_system)
-        .only("source_file_id", "source_file_name", "source_system")
-        .prefetch_related("nyiso_reports__nyiso_report")
-    )
-    
-    matching_files = [
-        src for src in files
-        if _resolve_dataset_key(src).lower() == dataset_key.lower()
-    ]
-    
-    if not matching_files:
-        return SourceMappingTestRunOut(
-            success=False,
-            message="No source files found for this source_system/dataset_key combination.",
-            files_tested=0,
-            raw_records_processed=0,
-            timeseries_points_would_create=0,
-            validation_warnings=[],
-            error_detail="No matching files found",
-        )
-    
-    warnings: list[str] = []
-    
-    # Get all column_mappings for this dataset
-    all_mappings = list(
-        column_mapping.objects
-        .filter(
-            source_system__iexact=source_system,
-            dataset_key__iexact=dataset_key,
-            include_in_ingestion=True,
-        )
-        .select_related("unit_type")
-    )
-    
-    if not all_mappings:
-        return SourceMappingTestRunOut(
-            success=False,
-            message=f"No column mappings found for {source_system}/{dataset_key}.",
-            files_tested=0,
-            raw_records_processed=0,
-            timeseries_points_would_create=0,
-            validation_warnings=["No column mappings configured"],
-            error_detail="Missing column mappings",
-        )
-    
-    # Categorize mappings by role
-    def _get_role(cm):
-        if cm.unit_type_id and cm.unit_type and cm.unit_type.base_data_type == "datetime":
-            return "timestamp"
-        if cm.unit_type_id:
-            return "value"
-        if cm.column_label:
-            return "dimension"
-        return "unmapped"
-    
-    ts_mappings = [m for m in all_mappings if _get_role(m) == "timestamp"]
-    value_mappings = [m for m in all_mappings if _get_role(m) == "value"]
-    dim_mappings = [m for m in all_mappings if _get_role(m) == "dimension"]
-    unmapped_mappings = [m for m in all_mappings if _get_role(m) == "unmapped"]
-    
-    if len(ts_mappings) != 1:
-        warnings.append("Expected exactly one timestamp column configured")
-        return SourceMappingTestRunOut(
-            success=False,
-            message="Invalid timestamp mapping configuration.",
-            files_tested=len(matching_files),
-            raw_records_processed=0,
-            timeseries_points_would_create=0,
-            validation_warnings=warnings,
-            error_detail=f"Found {len(ts_mappings)} timestamp mappings",
-        )
-    ts_mapping = ts_mappings[0]
-    
-    if not value_mappings:
-        warnings.append("No value columns configured - nothing to normalize")
-        return SourceMappingTestRunOut(
-            success=False,
-            message="No value column mappings found.",
-            files_tested=len(matching_files),
-            raw_records_processed=0,
-            timeseries_points_would_create=0,
-            validation_warnings=warnings,
-            error_detail="No value mappings",
-        )
-    
-    if len(dim_mappings) != 1:
-        warnings.append("Expected exactly one dimension column configured")
-        return SourceMappingTestRunOut(
-            success=False,
-            message="Invalid dimension mapping configuration.",
-            files_tested=len(matching_files),
-            raw_records_processed=0,
-            timeseries_points_would_create=0,
-            validation_warnings=warnings,
-            error_detail=f"Found {len(dim_mappings)} dimension mappings",
-        )
-
-    if unmapped_mappings:
-        warnings.append(f"{len(unmapped_mappings)} active columns are unmapped and will be ignored")
-    
-    # Simulate normalization
-    points_to_create: set[tuple[int, str]] = set()
-    raw_record_count = 0
-    ts_field = ts_mapping.raw_column
-    dim_field = dim_mappings[0].raw_column
-    for src in matching_files:
-        for rr in src.raw_records.all():
-            raw_record_count += 1
-            payload = rr.row_payload_json or {}
-
-            ts_val = payload.get(ts_field)
-            if not ts_val or str(ts_val).strip() == "":
-                return SourceMappingTestRunOut(
-                    success=False,
-                    message="Invalid source data encountered.",
-                    files_tested=len(matching_files),
-                    raw_records_processed=raw_record_count,
-                    timeseries_points_would_create=len(points_to_create),
-                    validation_warnings=warnings,
-                    error_detail=f"row {rr.row_number}: missing timestamp value",
-                )
-
-            dim_val = payload.get(dim_field)
-            if dim_val is None or str(dim_val).strip() == "":
-                return SourceMappingTestRunOut(
-                    success=False,
-                    message="Invalid source data encountered.",
-                    files_tested=len(matching_files),
-                    raw_records_processed=raw_record_count,
-                    timeseries_points_would_create=len(points_to_create),
-                    validation_warnings=warnings,
-                    error_detail=f"row {rr.row_number}: missing dimension value",
-                )
-
-            ts_key = str(ts_val).strip()
-
-            for value_m in value_mappings:
-                raw_val = payload.get(value_m.raw_column)
-                if raw_val is None or str(raw_val).strip() == "":
-                    continue
-                try:
-                    Decimal(str(raw_val).replace(",", "").strip())
-                    points_to_create.add((value_m.column_mapping_id, ts_key))
-                except InvalidOperation:
-                    return SourceMappingTestRunOut(
-                        success=False,
-                        message="Invalid source data encountered.",
-                        files_tested=len(matching_files),
-                        raw_records_processed=raw_record_count,
-                        timeseries_points_would_create=len(points_to_create),
-                        validation_warnings=warnings,
-                        error_detail=(
-                            f"row {rr.row_number}: invalid numeric value '{raw_val}' "
-                            f"in column '{value_m.raw_column}'"
-                        ),
-                    )
-    
-    return SourceMappingTestRunOut(
-        success=True,
-        message=f"Test passed across {len(matching_files)} files: {len(points_to_create)} points would be created from {raw_record_count} records.",
-        files_tested=len(matching_files),
-        raw_records_processed=raw_record_count,
-        timeseries_points_would_create=len(points_to_create),
-        validation_warnings=warnings,
-        error_detail=None,
-    )
-
-
-def _run_source_mapping(source_system: str, dataset_key: str) -> SourceMappingRunOut:
-    """Run normalization for all matching source files and return aggregate output."""
-    from energy_hub.server.nyiso_ingestor import normalize_nyiso_source_file
-    import re
-
-    files = list(
-        source_file.objects.filter(source_system__iexact=source_system)
-        .only("source_file_id", "source_file_name", "source_system")
-        .prefetch_related("nyiso_reports__nyiso_report")
-    )
-
-    matching_files = [
-        src for src in files
-        if _resolve_dataset_key(src).lower() == dataset_key.lower()
-    ]
-
-    if not matching_files:
-        return SourceMappingRunOut(
-            success=False,
-            message="No source files found for this source_system/dataset_key combination.",
-            files_ran=0,
-            attempted_points=0,
-            inserted_points=0,
-            duplicate_points_skipped=0,
-            output="",
-            error_detail="No matching files found",
-        )
-
-    output_lines: list[str] = []
-    attempted_total = 0
-    inserted_total = 0
-    duplicate_total = 0
-    failed = False
-
-    for src in matching_files:
-        try:
-            task_result = normalize_nyiso_source_file(src.source_file_id)
-            output_text = str(task_result)
-            output_lines.append(output_text)
-
-            match_attempted = re.search(r"attempted=(\d+)", output_text)
-            match_inserted = re.search(r"inserted=(\d+)", output_text)
-            match_duplicates = re.search(r"duplicates=(\d+)", output_text)
-            if match_attempted:
-                attempted_total += int(match_attempted.group(1))
-            if match_inserted:
-                inserted_total += int(match_inserted.group(1))
-            if match_duplicates:
-                duplicate_total += int(match_duplicates.group(1))
-
-            if not output_text.startswith("ok:"):
-                failed = True
-        except Exception as exc:
-            failed = True
-            output_lines.append(f"failed: file={src.source_file_name} error={exc}")
-
-    return SourceMappingRunOut(
-        success=not failed,
-        message=(
-            f"Mapping run completed across {len(matching_files)} files. "
-            f"attempted={attempted_total} inserted={inserted_total} duplicates_skipped={duplicate_total}"
-        ) if not failed else "Mapping run completed with one or more failures.",
-        files_ran=len(matching_files),
-        attempted_points=attempted_total,
-        inserted_points=inserted_total,
-        duplicate_points_skipped=duplicate_total,
-        output="\n".join(output_lines),
-        error_detail=None if not failed else "See output for per-file failures.",
-    )
-
-
 @schema_api.post("source-mappings/test-run/", response=SourceMappingTestRunOut)
 def test_source_mapping(
     request,
@@ -686,7 +410,7 @@ def test_source_mapping(
     dataset_key: str = Query(...),
 ):
     """Test a source mapping by running a dry-run normalization on sample data."""
-    return _test_run_source_mapping(source_system, dataset_key)
+    return test_run_source_mapping(source_system, dataset_key)
 
 
 @schema_api.post("source-mappings/run/", response=SourceMappingRunOut)
@@ -696,6 +420,6 @@ def run_source_mapping(
     dataset_key: str = Query(...),
 ):
     """Run source mapping normalization and return command output."""
-    return _run_source_mapping(source_system, dataset_key)
+    return run_source_mapping_service(source_system, dataset_key)
 
 

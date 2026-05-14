@@ -1,6 +1,15 @@
+/**
+ * Responsive application sidebar component.
+ * Features collapsible/expandable state, resizable width via mouse drag,
+ * hierarchical nested menus, mobile overlay support, auto-open of the active
+ * route's group, and persistent width stored in localStorage.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { loadSidebarNav } from "@navigation/nav-registry";
+import EmptyState from "@templates/empty-state";
+import ErrorBanner from "@templates/error-banner";
+import LoadingState from "@templates/loading-state";
 import type { SidebarNavItem } from "@app-types/navigation";
 
 //  
@@ -244,34 +253,34 @@ export default function Sidebar({ collapsed, onCollapsedChange, width, onWidthCh
         </div>
 
         <nav className="p-3">
-          {navLoading && <p className="text-sm text-slate-500">Loading menu...</p>}
+          {navLoading && <LoadingState label="Loading menu..." />}
 
           {!navLoading && navError && (
-            <div className="space-y-2">
-              <p className="text-sm text-red-500">{navError}</p>
-              <button
-                type="button"
-                className="btn-sidebar"
-                onClick={async () => {
-                  setNavLoading(true);
-                  setNavError(null);
-                  try {
-                    const items = await loadSidebarNav();
+            <ErrorBanner
+              message={navError}
+              onRetry={() => {
+                setNavLoading(true);
+                setNavError(null);
+                void loadSidebarNav()
+                  .then((items) => {
                     setNavItems(items);
-                  } catch {
+                  })
+                  .catch(() => {
                     setNavError("Failed to load navigation.");
-                  } finally {
+                  })
+                  .finally(() => {
                     setNavLoading(false);
-                  }
-                }}
-              >
-                Retry
-              </button>
-            </div>
+                  });
+              }}
+            />
           )}
 
           {!navLoading && !navError && (
-            <ul className="space-y-1">{sortedNav.map((item) => renderItem(item))}</ul>
+            sortedNav.length > 0 ? (
+              <ul className="space-y-1">{sortedNav.map((item) => renderItem(item))}</ul>
+            ) : (
+              <EmptyState label="No navigation items available." />
+            )
           )}
         </nav>
         {!collapsed && (

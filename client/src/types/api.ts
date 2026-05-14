@@ -139,3 +139,17 @@ export type ApiListResponse<T> = {
   results: T[];
   count: number;
 };
+
+/**
+ * Shared column mapping descriptor used by chart and timeseries clients.
+ */
+export type ColumnMappingOption = {
+  column_mapping_id: number;
+  source_system: string;
+  dataset_key: string;
+  raw_column: string;
+  semantic_key: string;
+  column_label: string;
+  unit_name: string | null;
+  base_data_type: string | null;
+};

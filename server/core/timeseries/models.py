@@ -13,8 +13,8 @@ class timeseries_point(BaseModel):
     column_mapping = models.ForeignKey(column_mapping, on_delete=models.SET_NULL, null=True, blank=True, related_name="timeseries_points")
     ts_utc = models.DateTimeField(db_index=True)
     value_json = models.JSONField(default=dict)
-    quality_flag = models.CharField(max_length=50, null=True, blank=True)
-    source_row_hash = models.CharField(max_length=64)
+    #quality_flag = models.CharField(max_length=50, null=True, blank=True)
+    #source_row_hash = models.CharField(max_length=64)
 
     class Meta:
         constraints = [

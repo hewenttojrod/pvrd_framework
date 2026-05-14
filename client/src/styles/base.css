@@ -1,0 +1,179 @@
+/**
+ * Base CSS variables and theme configuration.
+ * Defines color tokens for UI elements in both light and dark modes,
+ * including text, backgrounds, borders, inputs, and interactive state colors.
+ */
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  --ui-border: #cbd5e1;
+  --ui-input-bg: #ffffff;
+  --ui-input-text: #0f172a;
+  --ui-input-disabled-bg: #f1f5f9;
+  --ui-ring: #94a3b8;
+  --ui-hover-bg: #f1f5f9;
+  --ui-hover-bg-subtle: #f1f5f9;
+  --ui-primary-bg: #1e293b;
+  --ui-primary-bg-hover: #334155;
+  --ui-primary-text: #ffffff;
+  --ui-error-bg: #fef2f2;
+  --ui-error-text: #dc2626;
+  --ui-error-border: #fca5a5;
+  --ui-danger-bg: #dc2626;
+  --ui-danger-bg-hover: #b91c1c;
+  --ui-danger-text: #dc2626;
+  --ui-body-text: #475569;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+    --ui-border: #475569;
+    --ui-input-bg: #1e293b;
+    --ui-input-text: #f1f5f9;
+    --ui-input-disabled-bg: #0f172a;
+    --ui-hover-bg: #1e293b;
+    --ui-hover-bg-subtle: #334155;
+    --ui-primary-bg: #f1f5f9;
+    --ui-primary-bg-hover: #ffffff;
+    --ui-primary-text: #0f172a;
+    --ui-error-bg: rgba(127, 29, 29, 0.2);
+    --ui-error-text: #f87171;
+    --ui-error-border: #b91c1c;
+    --ui-danger-text: #f87171;
+    --ui-body-text: #cbd5e1;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
+}
+
+@theme inline {
+  --color-ui-border: var(--ui-border);
+  --color-ui-input-bg: var(--ui-input-bg);
+  --color-ui-input-text: var(--ui-input-text);
+  --color-ui-input-disabled: var(--ui-input-disabled-bg);
+  --color-ui-ring: var(--ui-ring);
+  --color-ui-hover: var(--ui-hover-bg);
+  --color-ui-hover-subtle: var(--ui-hover-bg-subtle);
+  --color-ui-primary: var(--ui-primary-bg);
+  --color-ui-primary-hover: var(--ui-primary-bg-hover);
+  --color-ui-primary-text: var(--ui-primary-text);
+  --color-ui-error-bg: var(--ui-error-bg);
+  --color-ui-error-text: var(--ui-error-text);
+  --color-ui-error-border: var(--ui-error-border);
+  --color-ui-danger: var(--ui-danger-bg);
+  --color-ui-danger-hover: var(--ui-danger-bg-hover);
+  --color-ui-danger-text: var(--ui-danger-text);
+  --color-ui-body-text: var(--ui-body-text);
+}
+
+#root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  border-inline: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}

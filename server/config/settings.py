@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "sslserver",
     "core",
     "django_celery_results",
+    "django_extensions"
 ]
 
 for module in REGISTERED_MODULES:
@@ -149,25 +150,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ── Celery ──────────────────────────────────────────────────────────────────
-# Broker: Redis running in the 'redis' Docker service.
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-
-# Store task results in the Django database (requires django_celery_results).
-CELERY_RESULT_BACKEND = "django-db"
-
-CELERY_TIMEZONE = "UTC"
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # hard 30-minute cap per task
-
-# Periodic scheduler ticks configured per module via each module's registry.py.
-CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {}
-for module in REGISTERED_MODULES:
-    schedule_task = module.schedule_task_path()
-    if not schedule_task:
-        continue
-
-    interval_seconds = float(module.schedule_interval_seconds or 60.0)
-    CELERY_BEAT_SCHEDULE[f"{module.name}-process-schedules"] = {
-        "task": schedule_task,
-        "schedule": max(1.0, interval_seconds),
-    }
+from config.settings_celery import (  # noqa: E402
+    CELERY_BEAT_SCHEDULE,
+    CELERY_BROKER_URL,
+    CELERY_RESULT_BACKEND,
+    CELERY_TASK_TIME_LIMIT,
+    CELERY_TASK_TRACK_STARTED,
+    CELERY_TIMEZONE,
+)

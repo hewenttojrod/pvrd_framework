@@ -20,6 +20,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiState, FieldDef } from "@app-types/api";
 import { fetchWithRetry } from "@/utils/api-fetch";
+import { parseJsonResponse } from "@/utils/api-json";
+import ErrorBanner from "@templates/error-banner";
+import FieldInput from "@templates/field-input";
 import { FormFieldLabel } from "@templates/form-field-label";
 
 type EntryMode = "create" | "edit" | "view";
@@ -31,7 +34,7 @@ type EntryFormProps<TRow extends Record<string, unknown>> = {
   endpoint: string;
   /** ID of the record to load for edit/view. Omit for create mode. */
   recordId?: string | number;
-  ///** Initial mode. Defaults to "create" when no recordId, otherwise "view". */
+  /** Initial mode. Defaults to "create" when no recordId, otherwise "view". */
   initialMode?: EntryMode;
   /** Called after a successful save or delete */
   onSuccess?: (result: { mode: "saved" | "deleted"; data: TRow | null }) => void;
@@ -54,80 +57,15 @@ function buildDefaultValues<TRow extends Record<string, unknown>>(
   return defaults;
 }
 
-function renderInput<TRow extends Record<string, unknown>>(
-  field: FieldDef<TRow>,
-  value: unknown,
-  onChange: (key: string, val: unknown) => void,
-  disabled: boolean
-) {
-  const baseClass = "form-input";
-
-  if (field.type === "boolean") {
-    return (
-      <input
-        id={field.key}
-        type="checkbox"
-        disabled={disabled || field.readOnly}
-        checked={Boolean(value)}
-        onChange={(e) => onChange(field.key, e.target.checked)}
-        className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
-      />
-    );
+function mapRecordToFormValues<TRow extends Record<string, unknown>>(
+  fields: FieldDef<TRow>[],
+  data: TRow
+): FormValues {
+  const loaded: FormValues = {};
+  for (const field of fields) {
+    loaded[field.key] = data[field.key] ?? "";
   }
-
-  if (field.type === "textarea") {
-    return (
-      <textarea
-        id={field.key}
-        disabled={disabled || field.readOnly}
-        value={String(value ?? "")}
-        placeholder={field.placeholder}
-        onChange={(e) => onChange(field.key, e.target.value)}
-        rows={4}
-        className={baseClass}
-      />
-    );
-  }
-
-  if (field.type === "select") {
-    return (
-      <select
-        id={field.key}
-        disabled={disabled || field.readOnly}
-        value={String(value ?? "")}
-        onChange={(e) => onChange(field.key, e.target.value)}
-        className={baseClass}
-      >
-        <option value="">— Select —</option>
-        {field.options?.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    );
-  }
-
-  const inputType =
-    field.type === "number"
-      ? "number"
-      : field.type === "date"
-        ? "date"
-        : field.type === "datetime"
-          ? "datetime-local"
-          : "text";
-
-  return (
-    <input
-      id={field.key}
-      type={inputType}
-      disabled={disabled || field.readOnly}
-      value={String(value ?? "")}
-      placeholder={field.placeholder}
-      onChange={(e) => onChange(field.key, e.target.value)}
-      className={baseClass}
-    />
-  );
+  return loaded;
 }
 
 export default function EntryForm<TRow extends Record<string, unknown>>({
@@ -154,6 +92,25 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
 
   const recordUrl = recordId != null ? `${endpoint.replace(/\/$/, "")}/${recordId}/` : null;
 
+  // Reset all form state whenever the target record or field definitions change.
+  // This covers the case where the parent component reuses this form for a different
+  // record without unmounting it (e.g. clicking a different row in a grid).
+  // Wrapped in `Promise.resolve().then()` to defer until after the current render cycle,
+  // avoiding the "cannot update state during render" React warning.
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      setMode(derivedInitialMode);
+      setValues({
+        ...buildDefaultValues(fields),
+        ...(recordId == null && initialValues ? initialValues : {}),
+      });
+      setConfirmDelete(false);
+      setFetchState({ status: "idle" });
+      setSaveState({ status: "idle" });
+      setDeleteState({ status: "idle" });
+    });
+  }, [derivedInitialMode, fields, initialValues, recordId]);
+
   const loadRecord = useCallback(async () => {
     if (!recordUrl) return;
 
@@ -165,23 +122,22 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
 
     try {
       const response = await fetchWithRetry(recordUrl, { signal: controller.signal });
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      const data = (await response.json()) as TRow;
+      const data = await parseJsonResponse<TRow>(response);
       setFetchState({ status: "success", data });
-      const loaded: FormValues = {};
-      for (const field of fields) {
-        loaded[field.key] = data[field.key] ?? "";
-      }
-      setValues(loaded);
+      setValues(mapRecordToFormValues(fields, data));
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setFetchState({ status: "error", message: (err as Error).message });
     }
   }, [recordUrl, fields]);
 
+  // Fetch the existing record whenever `recordId` is set (or changes).
+  // The cleanup function aborts any in-flight request when the component unmounts or
+  // `recordId` changes, preventing stale data from landing in state.
+  // Deferred via `Promise.resolve()` for the same reason as the reset effect above.
   useEffect(() => {
     if (recordId != null) {
-      loadRecord();
+      void Promise.resolve().then(() => loadRecord());
     }
     return () => abortRef.current?.abort();
   }, [recordId, loadRecord]);
@@ -203,8 +159,7 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      const data = (await response.json()) as TRow;
+      const data = await parseJsonResponse<TRow>(response);
       setSaveState({ status: "success", data });
       setMode("view");
       onSuccess?.({ mode: "saved", data });
@@ -235,28 +190,20 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
     deleteState.status === "loading";
 
   const isEditing = mode === "create" || mode === "edit";
+  const errorMessages = [
+    fetchState.status === "error" ? `Failed to load record: ${fetchState.message}` : null,
+    saveState.status === "error" ? `Save failed: ${saveState.message}` : null,
+    deleteState.status === "error" ? `Delete failed: ${deleteState.message}` : null,
+  ].filter((message): message is string => Boolean(message));
 
   return (
-    <div className="space-y-6">
-      {/* Error banners */}
-      {fetchState.status === "error" && (
-        <p className="error-banner">
-          Failed to load record: {fetchState.message}
-        </p>
-      )}
-      {saveState.status === "error" && (
-        <p className="error-banner">
-          Save failed: {saveState.message}
-        </p>
-      )}
-      {deleteState.status === "error" && (
-        <p className="error-banner">
-          Delete failed: {deleteState.message}
-        </p>
-      )}
+    <div className="form-section">
+      {errorMessages.map((message) => (
+        <ErrorBanner key={message} message={message} />
+      ))}
 
       {/* Fields */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="form-grid">
         {fields.map((field) => (
           <div
             key={field.key}
@@ -268,13 +215,18 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
               hintInfo={field.hint_info}
               required={field.required && isEditing}
             />
-            {renderInput(field, values[field.key], handleChange, !isEditing || isWorking)}
+            <FieldInput
+              field={field}
+              value={values[field.key]}
+              onChange={handleChange}
+              disabled={!isEditing || isWorking}
+            />
           </div>
         ))}
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4 dark:border-slate-700">
+      <div className="form-actions">
         {mode === "view" && (
           <>
             <button
@@ -307,7 +259,7 @@ export default function EntryForm<TRow extends Record<string, unknown>>({
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(false)}
-                  className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>

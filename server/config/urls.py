@@ -15,11 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from importlib import import_module
+import logging
 
 from django.contrib import admin
 from django.urls import include, path
 
 from src.registry.module_registry import REGISTERED_MODULES
+
+_url_log = logging.getLogger(__name__)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -33,7 +36,7 @@ for module in REGISTERED_MODULES:
             import_module(module_urls)
             urlpatterns.append(path(f"{module.name.lower()}/", include(module_urls)))
         except ModuleNotFoundError:
-            pass
+            _url_log.warning("Module %r: urls path %r not found, skipping.", module.name, module_urls)
 
     api_urls = module.api_router_path()
     if api_urls:
@@ -41,4 +44,4 @@ for module in REGISTERED_MODULES:
             import_module(api_urls)
             urlpatterns.append(path(f"api/{module.name.lower()}/", include(api_urls)))
         except ModuleNotFoundError:
-            pass
+            _url_log.warning("Module %r: api_router path %r not found, skipping.", module.name, api_urls)

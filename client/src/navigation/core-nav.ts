@@ -1,3 +1,8 @@
+/**
+ * Core application navigation definitions.
+ * Declares the built-in sidebar navigation items (Home, Background Tasks,
+ * Source Mapping) that are always present regardless of which modules are loaded.
+ */
 import type { SidebarNavItem } from "@app-types/navigation";
 
 /**

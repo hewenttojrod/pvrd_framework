@@ -1,1 +1,2 @@
 staticfiles
+server/celerybeat-schedule

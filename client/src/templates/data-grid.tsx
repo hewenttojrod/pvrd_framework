@@ -1,23 +1,33 @@
-// /**
-//  * Reusable data grid component displaying tabular data from a REST API.
-//  * Features:
-//  * - Sortable columns (uses DRF ordering convention: ?ordering=field or ?ordering=-field)
-//  * - Async loading with refresh button
-//  * - Optional right-click context menu for actions
-//  * - Supports both array and paginated (results/count) response formats
-//  * - Automatic cleanup of pending requests
-//  * - Loading/error/empty states
-//  * 
-//  * @template TRow - Type of row data from API
-//  * @param columns - Column definitions
-//  * @param endpoint - Full REST API endpoint URL returning ApiListResponse<TRow> or TRow[]
-//  * @param params - Optional query parameters to append to each request
-//  * @param contextMenuActions - Optional right-click menu actions
-//  */
+/**
+ * Reusable data grid component displaying tabular data from a REST API.
+ * Features:
+ * - Sortable columns (uses DRF ordering convention: ?ordering=field or ?ordering=-field)
+ * - Async loading with refresh button
+ * - Optional right-click context menu for actions
+ * - Supports array, paginated (results/count), and Django Ninja (items/count) response formats
+ * - Automatic cleanup of pending requests on unmount or dependency change
+ * - Loading/error/empty states via dedicated template components
+ *
+ * @template TRow - Type of each row object returned by the API
+ * @param columns            - Column definitions controlling headers, widths, and rendering
+ * @param endpoint           - Full REST API URL returning ApiListResponse<TRow> or TRow[]
+ * @param params             - Optional extra query parameters appended to each request
+ * @param rowKey             - Optional row identifier field used for `rowPatches` merging
+ * @param rowPatches         - Optional updated row objects to merge into loaded data without
+ *                             a full reload (e.g. after an inline edit)
+ * @param contextMenuActions - Optional right-click menu items
+ * @param onRowClick         - Optional handler for row left-click (e.g. open detail panel)
+ * @param onRefresh          - Optional async callback fired before each manual refresh
+ * @param layoutOptions      - Optional sticky header and bounded scroll configuration
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ApiListResponse, ApiState, ColumnDef, GridActionContext, GridContextAction } from "@app-types/api";
 import { fetchWithRetry, resolveApiUrl } from "@/utils/api-fetch";
+import { parseJsonResponse } from "@/utils/api-json";
+import EmptyState from "@templates/empty-state";
+import ErrorBanner from "@templates/error-banner";
+import LoadingState from "@templates/loading-state";
 
 const EMPTY_PARAMS: Record<string, string> = {};
 
@@ -26,6 +36,12 @@ type SortDir = "asc" | "desc";
 type SortState = {
   key: string;
   dir: SortDir;
+};
+
+export type DataGridLayoutOptions = {
+  stretchToContainer?: boolean;
+  stickyHeader?: boolean;
+  maxHeight?: string;
 };
 
 type DataGridProps<TRow extends Record<string, unknown>> = {
@@ -46,14 +62,7 @@ type DataGridProps<TRow extends Record<string, unknown>> = {
   /** Optional callback invoked before the grid reloads via the toolbar refresh button */
   onRefresh?: () => void | Promise<void>;
   /** Optional layout options for sticky headers and bounded scroll area */
-  layoutOptions?: {
-    /** When true, table is forced to fill the parent width. */
-    stretchToContainer?: boolean;
-    /** When true, table header stays fixed while rows scroll. */
-    stickyHeader?: boolean;
-    /** Optional max height for row scroll area (for example: "60vh" or "480px"). */
-    maxHeight?: string;
-  };
+  layoutOptions?: DataGridLayoutOptions;
 };
 
 type MenuState<TRow extends Record<string, unknown>> = {
@@ -73,12 +82,7 @@ async function fetchPage<TRow>(
   }
 
   const response = await fetchWithRetry(url.toString(), { signal });
-
-  if (!response.ok) {
-    throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const payload = (await response.json()) as ApiListResponse<TRow> | TRow[];
+  const payload = await parseJsonResponse<ApiListResponse<TRow> | TRow[]>(response);
 
   if (Array.isArray(payload)) {
     return {
@@ -121,40 +125,12 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
   );
   const paramsKey = JSON.stringify(paramsEntries);
 
-  useEffect(() => {
-    if (!rowKey || !rowPatches || rowPatches.length === 0) {
-      return;
-    }
-
-    setState((prev) => {
-      if (prev.status !== "success") {
-        return prev;
-      }
-
-      const patchMap = new Map<unknown, TRow>();
-      for (const patch of rowPatches) {
-        patchMap.set(patch[rowKey], patch);
-      }
-
-      if (patchMap.size === 0) {
-        return prev;
-      }
-
-      const nextRows = prev.data.results.map((row) => {
-        const patch = patchMap.get(row[rowKey]);
-        return patch ?? row;
-      });
-
-      return {
-        status: "success",
-        data: {
-          ...prev.data,
-          results: nextRows,
-        },
-      };
-    });
-  }, [rowKey, rowPatches]);
-
+  // Fetch data whenever the endpoint, query params, sort state, or refresh tick changes.
+  // A new AbortController is created for each fetch — the previous controller's signal
+  // is aborted in the cleanup function, cancelling any in-flight request when the
+  // component unmounts or one of the dependencies changes before the request resolves.
+  // `paramsKey` (a stable JSON string) is used instead of the `params` object reference
+  // to avoid spurious re-fetches when the parent re-renders with a new object literal.
   useEffect(() => {
     const controller = new AbortController();
     abortRef.current = controller;
@@ -190,7 +166,26 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
     });
   };
 
-  const rows = state.status === "success" ? state.data.results : [];
+  const rows = useMemo(() => {
+    if (state.status !== "success") {
+      return [] as TRow[];
+    }
+
+    if (!rowKey || !rowPatches || rowPatches.length === 0) {
+      return state.data.results;
+    }
+
+    const patchMap = new Map<unknown, TRow>();
+    for (const patch of rowPatches) {
+      patchMap.set(patch[rowKey], patch);
+    }
+
+    if (patchMap.size === 0) {
+      return state.data.results;
+    }
+
+    return state.data.results.map((row) => patchMap.get(row[rowKey]) ?? row);
+  }, [rowKey, rowPatches, state]);
   const isLoading = state.status === "loading";
   const isError = state.status === "error";
   const visibleActions = useMemo(() => {
@@ -200,6 +195,10 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
     );
   }, [contextMenuActions, menu]);
 
+  // Close the context menu on any pointer interaction outside it, any scroll, or Escape key.
+  // Listeners are added only while the menu is open (`menu !== null`) and removed as soon as
+  // the menu closes or the component unmounts. This avoids permanent global listeners and
+  // prevents stale closure issues by depending on `menu` as an effect dependency.
   useEffect(() => {
     if (!menu) return;
 
@@ -258,16 +257,16 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
   const stretchToContainer = layoutOptions?.stretchToContainer !== false;
 
   const tableElement = (
-    <table className={[stretchToContainer ? "w-full min-w-full" : "w-full", "table-auto border-collapse text-sm"].join(" ")}>
-      <thead className={["bg-slate-100 dark:bg-slate-800", stickyHeader ? "sticky top-0 z-10" : ""].join(" ")}>
+    <table className={[stretchToContainer ? "w-full min-w-full" : "w-full", "data-table text-sm"].join(" ")}>
+      <thead className={["data-table__thead", stickyHeader ? "data-table__thead--sticky" : ""].join(" ")}>
         <tr>
           {columns.map((col) => (
             <th
               key={col.key}
               style={col.width ? { width: col.width } : undefined}
               className={[
-                "px-4 py-2 text-left font-medium text-slate-700 dark:text-slate-300",
-                col.sortable ? "cursor-pointer select-none hover:text-slate-900 dark:hover:text-white" : "",
+                "data-table__header-cell",
+                col.sortable ? "data-table__header-cell--sortable" : "",
               ].join(" ")}
               onClick={() => toggleSort(col.key, col.sortable)}
               aria-sort={
@@ -293,7 +292,7 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
         {isLoading && (
           <tr>
             <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-400">
-              Loading…
+              <LoadingState />
             </td>
           </tr>
         )}
@@ -301,7 +300,7 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
         {isError && (
           <tr>
             <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-red-500">
-              {state.status === "error" ? state.message : ""}
+              {state.status === "error" ? <ErrorBanner message={state.message} onRetry={handleRefreshClick} /> : null}
             </td>
           </tr>
         )}
@@ -309,7 +308,7 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
         {!isLoading && !isError && rows.length === 0 && (
           <tr>
             <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-400">
-              No records found.
+              <EmptyState />
             </td>
           </tr>
         )}
@@ -326,7 +325,7 @@ export default function DataGrid<TRow extends Record<string, unknown>>({
               onContextMenu={(event) => openContextMenu(event, row, rowIdx)}
             >
               {columns.map((col) => (
-                <td key={col.key} className="px-4 py-2 text-slate-700 dark:text-slate-300">
+                <td key={col.key} className="data-table__body-cell">
                   {col.render
                     ? col.render(row[col.key], row)
                     : String(row[col.key] ?? "")}

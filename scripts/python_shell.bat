@@ -29,7 +29,7 @@ if not defined CONTAINER_NAME (
 REM Open Python shell in the container
 echo.
 echo Opening Python shell in container '%CONTAINER_NAME%'...
-docker exec -it %CONTAINER_NAME% python manage.py shell
+docker exec -it %CONTAINER_NAME% python manage.py shell_plus --ipython
 
 endlocal
 pause

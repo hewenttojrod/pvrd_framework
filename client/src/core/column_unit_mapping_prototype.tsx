@@ -1,3 +1,9 @@
+/**
+ * Prototype UI for column-to-unit-type mapping management.
+ * Allows users to define the base data type and role for each ingested column,
+ * manage the unit type registry, and infer roles from column metadata.
+ * This is a prototype component and may be superseded by the schema mapping editor.
+ */
 import { useMemo, useState } from "react";
 import FormBody from "@templates/form-body";
 

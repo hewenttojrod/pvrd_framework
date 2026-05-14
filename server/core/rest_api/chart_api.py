@@ -18,6 +18,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
+from django.db.models import Func, TextField
 from ninja import NinjaAPI, Query, Schema
 from ninja.errors import HttpError
 from pydantic import Field
@@ -26,7 +27,7 @@ from core.charts import chart_definition
 from core.metrics import column_mapping
 from core.raw import raw_record
 from core.timeseries import timeseries_point
-
+from ..src.util.log_handler import log
 
 chart_api = NinjaAPI(urls_namespace="chart_api", docs_url="/docs")
 
@@ -77,6 +78,12 @@ class ColumnMappingOut(Schema):
 
 class DimensionOut(Schema):
     dimension_key: str
+
+
+class _JsonbObjectKeys(Func):
+    """PostgreSQL jsonb_object_keys() set-returning function for DB-level key extraction."""
+    function = "jsonb_object_keys"
+    output_field = TextField()
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +212,7 @@ def list_dimensions(
     dataset_key: str | None = Query(default=None),
 ):
     """Return distinct dimension keys from value_json payloads in timeseries_point."""
-    qs = timeseries_point.objects.all()
+    qs = timeseries_point.objects.filter(value_json__isnull=False)
     if source_system or dataset_key:
         cm_filter: dict[str, str] = {}
         if source_system:
@@ -213,11 +220,13 @@ def list_dimensions(
         if dataset_key:
             cm_filter["column_mapping__dataset_key__iexact"] = dataset_key.strip()
         qs = qs.filter(**cm_filter)
-    dim_keys: set[str] = set()
-    for value_json in qs.values_list("value_json", flat=True)[:5000]:
-        if isinstance(value_json, dict):
-            dim_keys.update(str(k) for k in value_json.keys())
-    return [{"dimension_key": key} for key in sorted(dim_keys)[:500]]
+    dim_keys = (
+        qs.annotate(dim_key=_JsonbObjectKeys("value_json"))
+        .values_list("dim_key", flat=True)
+        .distinct()
+        .order_by("dim_key")[:500]
+    )
+    return [{"dimension_key": key} for key in dim_keys]
 
 
 # ---------------------------------------------------------------------------
@@ -356,7 +365,6 @@ class TimeseriesPointListOut(Schema):
     semantic_key: str | None
     unit_name: str | None
     value_json: dict[str, Any]
-    quality_flag: str | None
     source_file_id: int
     source_file_name: str
 
@@ -447,7 +455,6 @@ def list_timeseries_points(
                     else None
                 ),
                 "value_json": tp.value_json or {},
-                "quality_flag": tp.quality_flag,
                 "source_file_id": tp.source_file_id,
                 "source_file_name": tp.source_file.source_file_name,
             }
@@ -463,7 +470,7 @@ def get_timeseries_raw_record(
 ) -> dict[str, Any]:
     """
     Return the raw CSV row (row_payload_json) that produced a given timeseries_point.
-    Looks up via source_file_id + source_row_hash → raw_record.row_hash.
+    Looks up via source_file_id + timestamp match.
     """
     try:
         tp = timeseries_point.objects.select_related("source_file").get(
@@ -473,9 +480,10 @@ def get_timeseries_raw_record(
         raise HttpError(404, "Timeseries point not found")
 
     try:
+        timestamp = tp.ts_utc.replace(tzinfo=None).strftime("%m/%d/%Y %H:%M:%S")
         rr = raw_record.objects.get(
             source_file_id=tp.source_file_id,
-            row_hash=tp.source_row_hash,
+            row_payload_json__contains={'Time Stamp': timestamp},
         )
     except raw_record.DoesNotExist:
         raise HttpError(404, "Raw record not found for this timeseries point")
@@ -487,3 +495,41 @@ def get_timeseries_raw_record(
         "source_file_id": tp.source_file_id,
         "source_file_name": tp.source_file.source_file_name,
     }
+
+
+@chart_api.get("timeseries/raw-records-by-timestamp/", response=list[RawRecordOut])
+def get_timeseries_raw_records_by_timestamp(
+    request,
+    timeseries_point_id: int,
+) -> list[dict[str, Any]]:
+    """
+    Return all raw CSV rows (row_payload_json) with the same timestamp as the given timeseries_point.
+    Useful for debugging data that spans multiple raw records at the same timestamp.
+    """
+    try:
+        tp = timeseries_point.objects.select_related("source_file").get(
+            pk=timeseries_point_id
+        )
+    except timeseries_point.DoesNotExist:
+        raise HttpError(404, "Timeseries point not found")
+
+    timestamp = tp.ts_utc.replace(tzinfo=None).strftime("%m/%d/%Y %H:%M:%S")
+    records = raw_record.objects.filter(
+        source_file_id=tp.source_file_id,
+        row_payload_json__contains={'Time Stamp': timestamp},
+    )
+
+    if not records.exists():
+        raise HttpError(404, "Raw records not found for this timeseries point timestamp")
+
+    return [
+        {
+            "raw_record_id": rr.raw_record_id,
+            "row_number": rr.row_number,
+            "row_payload_json": rr.row_payload_json or {},
+            "source_file_id": tp.source_file_id,
+            "source_file_name": tp.source_file.source_file_name,
+        }
+        for rr in records
+    ]
+

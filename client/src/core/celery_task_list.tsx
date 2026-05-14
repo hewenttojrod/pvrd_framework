@@ -1,8 +1,14 @@
+/**
+ * Background task monitor page.
+ * Displays live and completed Celery tasks in a data grid with status
+ * filtering, refresh support, and formatted timestamps.
+ */
 import { useMemo, useState } from "react";
 
 import type { ColumnDef } from "@app-types/api";
 import DataGrid from "@templates/data-grid";
 import FormBody from "@templates/form-body";
+import { formatNullableTimestamp } from "@/utils/display-format";
 
 const CELERY_TASKS_ENDPOINT = "/api/core/celery/tasks/";
 
@@ -20,14 +26,6 @@ type CeleryTaskRow = {
 
 export default function CeleryTaskList() {
   const [statusFilter, setStatusFilter] = useState("ALL");
-
-  const renderTimestamp = (value: string | null) => {
-    if (!value) {
-      return "-";
-    }
-    const timestamp = new Date(value);
-    return Number.isNaN(timestamp.getTime()) ? value : timestamp.toLocaleString();
-  };
 
   const columns: ColumnDef<CeleryTaskRow>[] = useMemo(
     () => [
@@ -47,12 +45,12 @@ export default function CeleryTaskList() {
       {
         key: "date_created",
         label: "Created",
-        render: (_value, row) => renderTimestamp(row.date_created),
+        render: (_value, row) => formatNullableTimestamp(row.date_created),
       },
       {
         key: "date_done",
         label: "Completed",
-        render: (_value, row) => renderTimestamp(row.date_done),
+        render: (_value, row) => formatNullableTimestamp(row.date_done),
       },
       {
         key: "runtime",

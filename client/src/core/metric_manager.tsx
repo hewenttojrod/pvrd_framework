@@ -1,9 +1,16 @@
+/**
+ * Canonical metric management page.
+ * Provides a full CRUD interface for creating, editing, and deleting metrics
+ * via a data grid and inline entry form backed by the metrics REST API.
+ */
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@app-types/api";
 import DataGrid from "@templates/data-grid";
 import EntryForm from "@templates/entry-form";
 import FormBody from "@templates/form-body";
+import SectionPanel from "@templates/section-panel";
 import type { FieldDef } from "@app-types/api";
+import { useListRefresh } from "@/hooks/use-list-refresh";
 
 const METRICS_ENDPOINT = "/api/core/schema/metrics/";
 
@@ -44,7 +51,7 @@ const METRIC_FIELDS: FieldDef<MetricRow>[] = [
 export default function MetricManager() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { refreshTick, triggerRefresh } = useListRefresh();
 
   const columns: ColumnDef<MetricRow>[] = useMemo(
     () => [
@@ -61,7 +68,7 @@ export default function MetricManager() {
   const handleSuccess = () => {
     setSelectedId(null);
     setShowCreate(false);
-    setRefreshKey((k) => k + 1);
+    triggerRefresh();
   };
 
   return (
@@ -87,8 +94,7 @@ export default function MetricManager() {
       </div>
 
       {showCreate && (
-        <div className="mb-6 rounded border border-slate-200 p-4 dark:border-slate-700">
-          <h2 className="mb-4 text-base font-semibold">New Metric</h2>
+        <SectionPanel className="mb-6" title="New Metric">
           <EntryForm<MetricRow>
             fields={METRIC_FIELDS}
             endpoint={METRICS_ENDPOINT}
@@ -96,12 +102,11 @@ export default function MetricManager() {
             onSuccess={handleSuccess}
             onCancel={() => { setShowCreate(false); }}
           />
-        </div>
+        </SectionPanel>
       )}
 
       {selectedId !== null && (
-        <div className="mb-6 rounded border border-slate-200 p-4 dark:border-slate-700">
-          <h2 className="mb-4 text-base font-semibold">Edit Metric #{selectedId}</h2>
+        <SectionPanel className="mb-6" title={`Edit Metric #${selectedId}`}>
           <EntryForm<MetricRow>
             fields={METRIC_FIELDS}
             endpoint={METRICS_ENDPOINT}
@@ -110,11 +115,11 @@ export default function MetricManager() {
             onSuccess={handleSuccess}
             onCancel={() => setSelectedId(null)}
           />
-        </div>
+        </SectionPanel>
       )}
 
       <DataGrid<MetricRow>
-        key={refreshKey}
+        key={refreshTick}
         columns={columns}
         endpoint={METRICS_ENDPOINT}
         rowKey="metric_id"
