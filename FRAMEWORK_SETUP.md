@@ -25,6 +25,8 @@ pvrd_framework/
 │   ├── client.Dockerfile      Frontend image spec
 │   └── server_setup.sh        Backend startup script
 └── scripts/                   Developer automation
+  ├── build.sh
+  └── bat/
     ├── build.bat
     └── create_module.bat
 ```

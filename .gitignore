@@ -8,5 +8,5 @@ data/**
 .DS_Store
 #modules/**
 .github
-#.gitmodules
-modules/module_template
+scripts/module_profiles/*
+!scripts/module_profiles/full.txt

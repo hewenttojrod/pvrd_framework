@@ -109,7 +109,7 @@ const data: { items: DomainEntity[] } = await response.json()
 
 1. Create folder: `modules/ModuleName/`
 2. Add `__init__.py` (empty file)
-3. Run: `.\ scripts/create_module.bat ModuleName` (creates server app)
+3. Run: `.\scripts\bat\create_module.bat ModuleName` (creates server app via WSL)
 4. Add models to `server/models.py`
 5. Add routes to `server/urls.py` (or create urls.py if missing)
 6. Create `client/index.ts` with route and component export

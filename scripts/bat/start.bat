@@ -1,0 +1,5 @@
+@echo off
+setlocal
+set "THIS_DIR=%~dp0"
+call "%THIS_DIR%run_sh_via_wsl.bat" "%THIS_DIR%..\start.sh" %*
+exit /b %errorlevel%

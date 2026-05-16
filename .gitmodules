@@ -1,5 +1,5 @@
-[submodule "modules/bookstore"]
-	path = modules/bookstore
+[submodule "modules/Bookstore"]
+	path = modules/Bookstore
 	url = https://github.com/hewenttojrod/bookstore.git
 [submodule "modules/module_template"]
 	path = modules/module_template

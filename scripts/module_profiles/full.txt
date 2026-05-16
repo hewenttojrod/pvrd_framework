@@ -1,0 +1,6 @@
+# Profile: full
+# All available modules — use for development environments that need everything.
+
+bookstore
+energy_hub
+module_template
